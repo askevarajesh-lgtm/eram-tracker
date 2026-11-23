@@ -1,0 +1,14 @@
+# Local development database:  npm run db:up
+# Connection string (put in .env):  DATABASE_URL=postgresql://dev360:dev360pass@localhost:5433/dev360?schema=app
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dev360
+      POSTGRES_PASSWORD: dev360pass
+      POSTGRES_DB: dev360
+    ports: ["5433:5432"]
+    volumes: ["pgdata-dev:/var/lib/postgresql/data"]
+volumes:
+  pgdata-dev:

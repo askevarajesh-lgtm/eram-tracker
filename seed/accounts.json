@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Sreeshma K",
+    "email": "sreeshma.k@eramhcm.com",
+    "role": "Admin",
+    "owner": true,
+    "developer": "Sreeshma K"
+  },
+  {
+    "name": "Pradeep Krishnan",
+    "email": "pradeep.krishnan@eramengineering.com",
+    "role": "Admin"
+  }
+]

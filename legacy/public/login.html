@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · Dev 360 Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#e4e9f0;--line2:#d2d9e3;--fg:#0f1a2a;--muted:#5f6c7e;--accent:#0f766e;--accent-ink:#fff;--side:#0d1b2a;--bad:#d32f2f;
+  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0a0f16;--surface:#111a24;--line:#213041;--line2:#2b3c50;--fg:#e7edf5;--muted:#8e9db2;--accent:#2dd4bf;--accent-ink:#04201d;--side:#070c12;--bad:#f87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:var(--bg);color:var(--fg);font:14px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+.brand{background:var(--side);color:#d6dfeb;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.brand::after{content:"";position:absolute;right:-120px;bottom:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 45%,transparent),transparent 70%);opacity:.5}
+.logo{display:flex;align-items:center;gap:12px}
+.mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(140deg,#0f766e,#0b3b66);color:#fff;font:800 13px var(--body)}
+.logo b{display:block;color:#fff;font-size:16px}.logo small{color:#8193aa}
+.brand h1{font:800 34px/1.15 var(--body);color:#fff;letter-spacing:-.03em;margin:0 0 12px;max-width:14ch}
+.brand p{color:#8193aa;max-width:40ch;margin:0}
+.brand ul{list-style:none;padding:0;margin:22px 0 0;display:flex;flex-direction:column;gap:8px;color:#b9c6d6}
+.brand li::before{content:"✓";color:#2dd4bf;font-weight:700;margin-right:10px}
+main{display:grid;place-items:center;padding:32px 16px}
+.card{width:min(400px,100%);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 2px 10px rgba(15,26,42,.05)}
+h2{margin:0 0 4px;font:700 22px var(--body);letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 20px;font-size:13px}
+label{display:block;font:600 12px var(--body);color:var(--muted);margin:14px 0 6px}
+input{width:100%;font:500 14px var(--body);padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--surface);color:var(--fg)}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+button{width:100%;margin-top:20px;font:700 14px var(--body);padding:11px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button:disabled{opacity:.6}
+.err{color:var(--bad);font-size:13px;min-height:20px;margin:12px 0 0}
+.switch{margin-top:16px;text-align:center;font-size:13px;color:var(--muted)}
+.switch a{color:var(--accent);font-weight:600;cursor:pointer}
+[hidden]{display:none!important}
+@media (max-width:820px){body{grid-template-columns:1fr}.brand{padding:28px 20px}.brand h1{font-size:26px}.brand ul{display:none}}
+</style>
+</head>
+<body>
+<section class="brand">
+  <div class="logo"><span class="mark">HCM</span><div><b>ERAM HCM</b><small>Business Tools</small></div></div>
+  <div>
+    <h1 id="appName">Dev 360 Tracker</h1>
+    <p>Development status, developers, users, licences and urgent issues for the ERAM HCM projects, in one place.</p>
+    <ul><li>Upload your Excel status report</li><li>Download the full workbook any time</li><li>Roles for admins, managers, developers and viewers</li></ul>
+  </div>
+  <span style="font-size:12px;color:#5d6f86">© ERAM HCM</span>
+</section>
+<main>
+  <form class="card" id="f" novalidate>
+    <h2 id="title">Sign in</h2>
+    <p class="sub" id="sub">Use the account your admin gave you.</p>
+    <div id="nameRow" hidden><label for="name">Full name</label><input id="name" autocomplete="name"></div>
+    <label for="email">Email</label><input id="email" type="email" autocomplete="username" required>
+    <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+    <button id="go" type="submit">Sign in</button>
+    <p class="err" id="err" role="alert"></p>
+    <p class="switch" id="sw" hidden></p>
+  </form>
+</main>
+<script>
+(async function(){
+  const $=s=>document.querySelector(s);let mode="login",st={};
+  const next=new URLSearchParams(location.search).get("next")||"/";
+  const safeNext=/^\/(?!\/)/.test(next)?next:"/";
+  try{const r=await fetch("/api/me",{credentials:"same-origin"});if(r.ok){location.replace(safeNext);return}}catch(e){}
+  try{st=await (await fetch("/api/auth/status")).json()}catch(e){st={hasUsers:true,signup:false}}
+  if(st.appName){$("#appName").textContent=st.appName;document.title="Sign in · "+st.appName}
+  function set(m){mode=m;const su=m==="signup";$("#nameRow").hidden=!su;$("#pw").autocomplete=su?"new-password":"current-password";
+    $("#title").textContent=!st.hasUsers?"Set up the tracker":su?"Create your account":"Sign in";
+    $("#sub").textContent=!st.hasUsers?"Create the first account. It becomes the owner with full admin rights.":su?(st.domain?`Use your @${st.domain} email. You start as a Viewer until an admin gives you a role.`:"You start as a Viewer until an admin gives you a role."):"Use the account your admin gave you.";
+    $("#go").textContent=su?"Create account":"Sign in";
+    const sw=$("#sw");sw.hidden=!st.hasUsers||!st.signup;sw.innerHTML=su?'Already have an account? <a id="tg">Sign in</a>':'New here? <a id="tg">Create an account</a>';$("#tg")?.addEventListener("click",()=>{$("#err").textContent="";set(su?"login":"signup")});
+    (su?$("#name"):$("#email")).focus()}
+  set(st.hasUsers?"login":"signup");
+  $("#f").onsubmit=async e=>{e.preventDefault();const b=$("#go");b.disabled=true;$("#err").textContent="";
+    try{const r=await fetch(mode==="signup"?"/api/auth/signup":"/api/auth/login",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:$("#name").value,email:$("#email").value,password:$("#pw").value})});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Something went wrong");location.replace(safeNext)}
+    catch(x){$("#err").textContent=x.message;b.disabled=false}}
+})();
+</script>
+</body>
+</html>

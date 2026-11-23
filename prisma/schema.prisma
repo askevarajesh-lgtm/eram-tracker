@@ -1,0 +1,647 @@
+// Dev 360 Tracker - relational schema.
+// Tables live in their own Postgres schema (set by ?schema=app in DATABASE_URL), so they
+// never collide with the old app's d360_* tables in "public" while data is being migrated.
+//
+// Conventions
+//  - ids are strings; records migrated from the old app keep their old ids, so links stay valid.
+//  - dates without a time (due dates, target dates...) use @db.Date.
+//  - `extra` keeps any legacy field that has no column yet, so the migration never drops data.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- access
+
+enum Role {
+  Admin
+  Manager
+  Developer
+  Viewer
+}
+
+/// A person who signs in to and uses the tracker (the admin's "Accounts" screen). The ONLY kind of
+/// app user: roles, permissions, approvals, chat, reminders and the audit log all refer to accounts.
+/// Not to be confused with AccessRecord (the "Users & access" register).
+model Account {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  isOwner      Boolean    @default(false)
+  active       Boolean    @default(true)
+  /// Almost everyone is Admin. Viewer = read-only (e.g. someone who signed themselves up).
+  role         Role       @default(Admin)
+  /// Optional link to this person's developer record. Developers and accounts are separate: a contract
+  /// developer can have no account, and an account holder needn't be a developer.
+  developerId  String?    @unique
+  developer    Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  issuesRaised Issue[]       @relation("IssueRaisedBy")
+  meetings     Meeting[]     @relation("MeetingCreatedBy")
+  reminders    Reminder[]    @relation("ReminderCreatedBy")
+  chatMessages ChatMessage[]
+  auditEntries AuditEntry[]
+  assets       Asset[]
+}
+
+// ---------------------------------------------------------------- organisation
+
+/// "Projects" in the UI (SAP B1, ATS, CRM...). Called modules in the old app.
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  code      String
+  fullName  String   @default("")
+  phase     String   @default("")
+  target    String   @default("")
+  lead      String   @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks          Task[]
+  issues         Issue[]
+  licences       Licence[]
+  rollouts       Rollout[]
+  dailyNotes     DailyNote[]
+  meetings       Meeting[]
+  milestones     Milestone[]
+  changeRequests ChangeRequest[]
+  releases       Release[]
+  risks          Risk[]
+  manuals        Manual[]
+  appAccess      AppAccess[]
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  code      String    @default("")
+  country   String    @default("")
+  sapDb     String    @default("")
+  branches  String[]  @default([])
+  notes     String    @default("")
+  holding   Boolean   @default(false)
+  parentId  String?
+  parent    Company?  @relation("CompanyGroup", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Company[] @relation("CompanyGroup")
+  sortOrder Int       @default(0)
+  extra     Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tasks          Task[]
+  issues         Issue[]
+  accessRecords  AccessRecord[]
+  licences       Licence[]
+  rollouts       Rollout[]
+  meetings       Meeting[]
+  changeRequests ChangeRequest[]
+  risks          Risk[]
+}
+
+model Developer {
+  id           String   @id @default(cuid())
+  name         String
+  title        String   @default("") // e.g. "SAP B1 Developer"
+  email        String   @default("")
+  whatsapp     String   @default("")
+  skills       String   @default("")
+  availability String   @default("")
+  extra        Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  account      Account?
+  tasks        TaskAssignee[]
+  issues       IssueAssignee[]
+  standups     Standup[]
+  meetings     MeetingDeveloper[]
+  reminders    ReminderDeveloper[]
+  timeEntries  TimeEntry[]
+  chatMessages ChatMessage[]
+}
+
+// ---------------------------------------------------------------- development tasks
+
+enum TaskStatus {
+  pending // Open / not started
+  progress // In progress
+  qa // Testing / QA
+  uat // UAT
+  done // Completed
+  hold // On hold / Blocked
+}
+
+enum Priority {
+  Critical
+  High
+  Medium
+  Low
+}
+
+enum ApprovalState {
+  pending
+  approved
+  rejected
+}
+
+model Task {
+  id            String     @id @default(cuid())
+  projectId     String?
+  project       Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  sno           Int // serial number, unique per project, assigned by the server
+  title         String
+  subModule     String     @default("")
+  type          String     @default("")
+  reqStatus     String     @default("Open")
+  status        TaskStatus @default(pending)
+  priority      Priority?
+  companyId     String?
+  company       Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  branch        String     @default("")
+  endUsers      String     @default("")
+  testStatus    String     @default("")
+  acceptStatus  String     @default("")
+  progress      Int?
+  startDate     DateTime?  @db.Date
+  dueDate       DateTime?  @db.Date
+  completedDate DateTime?  @db.Date
+  estHours      Decimal?   @db.Decimal(8, 2)
+  size          String     @default("")
+  version       String     @default("")
+  lead          String     @default("")
+  description   String     @default("")
+  notes         String     @default("")
+  source        String     @default("")
+
+  approvalState ApprovalState?
+  approvalBy    String?
+  approvalAt    DateTime?
+  approvalNote  String?
+
+  /// UAT sign-off: { by, team, d, how, note }
+  signoff   Json?
+  /// attached files: [{ id, name, type, size, t, by }] (ids point to Asset)
+  files     Json     @default("[]")
+  extra     Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignees   TaskAssignee[]
+  events      TaskEvent[]
+  timeEntries TimeEntry[]
+  releases    Release[]
+  reminders   Reminder[]
+  fromIssue   Issue?         @relation("IssueTask")
+  fromChange  ChangeRequest? @relation("ChangeTask")
+
+  @@index([projectId, sno])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model TaskAssignee {
+  taskId      String
+  developerId String
+  position    Int       @default(0) // 0 = lead assignee
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, developerId])
+  @@index([developerId])
+}
+
+/// Status changes, hand-overs, UAT rejections... on a task.
+model TaskEvent {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  at         DateTime @default(now())
+  kind       String // status | share | uat_reject | note
+  fromStatus String?
+  toStatus   String?
+  message    String   @default("")
+  data       Json?
+
+  @@index([taskId, at])
+}
+
+/// Hours logged against a task.
+model TimeEntry {
+  id          String     @id @default(cuid())
+  taskId      String
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  developerId String?
+  developer   Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
+  date        DateTime   @db.Date
+  hours       Decimal    @db.Decimal(6, 2)
+  note        String     @default("")
+  createdAt   DateTime   @default(now())
+
+  @@index([taskId])
+}
+
+// ---------------------------------------------------------------- support issues
+
+model Issue {
+  id            String         @id // TKN-0001 style reference
+  title         String
+  description   String         @default("")
+  projectId     String?
+  project       Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  companyId     String?
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  priority      String         @default("Normal") // Urgent | High | Normal
+  status        String         @default("new")
+  raisedBy      String         @default("")
+  contact       String         @default("")
+  raisedById    String?
+  raisedByAcc   Account?       @relation("IssueRaisedBy", fields: [raisedById], references: [id], onDelete: SetNull)
+  resolution    String         @default("")
+  resolvedAt    DateTime?
+  taskId        String?        @unique
+  task          Task?          @relation("IssueTask", fields: [taskId], references: [id], onDelete: SetNull)
+  approvalState ApprovalState?
+  approvalBy    String?
+  approvalAt    DateTime?
+  approvalNote  String?
+  /// attached files (screenshots…)
+  files         Json           @default("[]")
+  extra         Json           @default("{}")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  assignees IssueAssignee[]
+  events    IssueEvent[]
+
+  @@index([status])
+}
+
+model IssueAssignee {
+  issueId     String
+  developerId String
+  position    Int       @default(0)
+  issue       Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, developerId])
+}
+
+model IssueEvent {
+  id      String   @id @default(cuid())
+  issueId String
+  issue   Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  at      DateTime @default(now())
+  message String
+
+  @@index([issueId, at])
+}
+
+// ---------------------------------------------------------------- users & access records
+
+/// The "Users & access" page: a RECORD of a person in the companies and which software / licences they
+/// have been given. Kept only to track licence and access allocation. These people do NOT sign in to the
+/// tracker and have no role here. The only people who use the tracker are `Account`s.
+model AccessRecord {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @default("")
+  sapCode     String   @default("")
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  branch      String   @default("")
+  dept        String   @default("")
+  designation String   @default("")
+  status      String   @default("Active")
+  /// Business user | Developer | IT / Admin | Consultant. End-user licences only count business users.
+  userType    String   @default("Business user")
+  extra       Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  licences  LicenceAssignment[]
+  appAccess AppAccess[]
+
+  @@index([companyId])
+}
+
+/// Which system (project) a person in the Users & access register has access to, and in what role.
+model AppAccess {
+  recordId  String
+  projectId String
+  role      String       @default("")
+  grantedOn DateTime?    @db.Date
+  record    AccessRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([recordId, projectId])
+  @@index([projectId])
+}
+
+/// A pool of licences (e.g. 28 x SAP B1 Financial).
+model Licence {
+  id        String    @id @default(cuid())
+  software  String
+  type      String    @default("")
+  quantity  Int       @default(0)
+  companyId String?
+  company   Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  /// endusers (only business users count) | dev (development / test) | all
+  audience  String    @default("endusers")
+  model     String    @default("")
+  renewal   DateTime? @db.Date
+  vendor    String    @default("")
+  cost      Decimal?  @db.Decimal(12, 2)
+  currency  String    @default("")
+  contract  String    @default("")
+  notes     String    @default("")
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  assignments LicenceAssignment[]
+}
+
+model LicenceAssignment {
+  licenceId  String
+  recordId   String
+  assignedOn DateTime?    @db.Date
+  licence    Licence      @relation(fields: [licenceId], references: [id], onDelete: Cascade)
+  record     AccessRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@id([licenceId, recordId])
+  @@index([recordId])
+}
+
+// ---------------------------------------------------------------- rollout & daily work
+
+/// Go-live of one project in one company.
+model Rollout {
+  id         String    @id @default(cuid())
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status     String    @default("")
+  progress   Int?
+  startDate  DateTime? @db.Date
+  targetDate DateTime? @db.Date
+  actualDate DateTime? @db.Date
+  owner      String    @default("")
+  branches   String    @default("")
+  notes      String    @default("")
+  log        Json      @default("[]")
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([companyId, projectId])
+}
+
+/// Project day notes (the "Eram HCM board").
+model DailyNote {
+  id        String   @id @default(cuid())
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  date      DateTime @db.Date
+  done      String   @default("")
+  blockers  String   @default("")
+  next      String   @default("")
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
+model Standup {
+  id          String    @id @default(cuid())
+  developerId String
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  date        DateTime  @db.Date
+  done        String    @default("")
+  plan        String    @default("")
+  blockers    String    @default("")
+  hours       Decimal?  @db.Decimal(5, 2)
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([developerId, date])
+}
+
+// ---------------------------------------------------------------- calendar & reminders
+
+model Meeting {
+  id               String   @id @default(cuid())
+  title            String
+  type             String   @default("")
+  status           String   @default("Planned")
+  date             DateTime @db.Date
+  startTime        String   @default("") // HH:MM
+  endTime          String   @default("")
+  mode             String   @default("")
+  location         String   @default("")
+  projectId        String?
+  project          Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  companyId        String?
+  company          Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  organizer        String   @default("")
+  remindMinutes    Int?
+  guests           String   @default("")
+  agenda           String   @default("")
+  minutes          String   @default("")
+  /// AccessRecord ids of people invited (a note on the meeting; they don't sign in)
+  inviteeRecordIds String[] @default([])
+  createdById      String?
+  createdBy        Account? @relation("MeetingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  extra            Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  developers MeetingDeveloper[]
+
+  @@index([date])
+}
+
+model MeetingDeveloper {
+  meetingId   String
+  developerId String
+  meeting     Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@id([meetingId, developerId])
+}
+
+model Reminder {
+  id          String    @id @default(cuid())
+  title       String
+  date        DateTime  @db.Date
+  time        String    @default("")
+  repeat      String    @default("")
+  template    String    @default("")
+  note        String    @default("")
+  done        Boolean   @default(false)
+  doneOn      DateTime? @db.Date
+  taskId      String?
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   Account?  @relation("ReminderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime  @updatedAt
+
+  developers ReminderDeveloper[]
+
+  @@index([date])
+}
+
+model ReminderDeveloper {
+  reminderId  String
+  developerId String
+  reminder    Reminder  @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@id([reminderId, developerId])
+}
+
+// ---------------------------------------------------------------- plan & control
+
+model Milestone {
+  id        String    @id @default(cuid())
+  title     String
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  target    DateTime? @db.Date
+  status    String    @default("Planned")
+  doneOn    DateTime? @db.Date
+  owner     String    @default("")
+  note      String    @default("")
+  updatedAt DateTime  @updatedAt
+}
+
+model ChangeRequest {
+  id            String         @id // CR-0001 style reference
+  title         String
+  description   String         @default("")
+  projectId     String?
+  project       Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  subModule     String         @default("")
+  requestedBy   String         @default("")
+  companyId     String?
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  priority      String         @default("")
+  effort        String         @default("")
+  status        String         @default("Submitted")
+  decisionBy    String?
+  decisionNote  String?
+  decidedAt     DateTime?
+  taskId        String?        @unique
+  task          Task?          @relation("ChangeTask", fields: [taskId], references: [id], onDelete: SetNull)
+  approvalState ApprovalState?
+  extra         Json           @default("{}")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Release {
+  id        String    @id @default(cuid())
+  version   String
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  date      DateTime? @db.Date
+  status    String    @default("")
+  notes     String    @default("")
+  tasks     Task[]
+  updatedAt DateTime  @updatedAt
+}
+
+model Risk {
+  id         String    @id @default(cuid())
+  type       String    @default("Risk") // Risk | Dependency
+  status     String    @default("Open")
+  title      String
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  companyId  String?
+  company    Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  impact     String    @default("")
+  likelihood String    @default("")
+  owner      String    @default("")
+  dueDate    DateTime? @db.Date
+  mitigation String    @default("")
+  updatedAt  DateTime  @updatedAt
+}
+
+model Manual {
+  id        String    @id @default(cuid())
+  title     String
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  subModule String    @default("")
+  level     String    @default("")
+  status    String    @default("Draft")
+  version   String    @default("")
+  language  String    @default("")
+  owner     String    @default("")
+  updatedOn DateTime? @db.Date
+  link      String    @default("")
+  notes     String    @default("")
+  /// attached files: [{ id, name, type, size }] (ids point to Asset)
+  files     Json      @default("[]")
+  extra     Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ---------------------------------------------------------------- collaboration & system
+
+model ChatMessage {
+  id          String     @id @default(cuid())
+  channel     String
+  text        String
+  accountId   String?
+  account     Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  developerId String?
+  developer   Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+
+  @@index([channel, createdAt])
+}
+
+/// One row per create/update/delete, written by the server.
+model AuditEntry {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  action    String // create | update | delete | note
+  entity    String // task, issue, project...
+  entityId  String   @default("")
+  label     String   @default("")
+
+  @@index([at])
+  @@index([entity, entityId])
+}
+
+/// App-wide settings (configurable lists, notification options...).
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// Uploaded files (manual PDFs, screenshots...).
+model Asset {
+  id           String   @id @default(cuid())
+  name         String
+  contentType  String
+  size         Int
+  data         Bytes
+  uploadedById String?
+  uploadedBy   Account? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+}

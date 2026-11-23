@@ -1,0 +1,34 @@
+{
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/_blob/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "includeFiles": "seed/**"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(index.html|)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ]
+}

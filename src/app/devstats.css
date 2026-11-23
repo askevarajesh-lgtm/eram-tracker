@@ -1,0 +1,1286 @@
+/* ==========================================================================
+   DEVELOPMENT STATS - REDESIGNED MODERN EXECUTIVE DASHBOARD
+   ========================================================================== */
+
+/* Main Container */
+.ds-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Enforce rigid SVG sizing across the entire dashboard to prevent blowout */
+.ds-container svg {
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   1. Elevated Command Toolbar & Filters
+   -------------------------------------------------------------------------- */
+.ds-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04), 0 2px 8px -2px rgba(15, 26, 42, 0.03);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+}
+
+.ds-toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ds-date-stepper {
+  display: inline-flex;
+  align-items: center;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 2px 4px;
+  gap: 2px;
+}
+
+.ds-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.ds-step-btn:hover:not(:disabled) {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.ds-step-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ds-date-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ds-date-display svg {
+  color: var(--accent);
+}
+
+.ds-preset-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-preset-btn:hover {
+  background: var(--sunk);
+  border-color: var(--line2);
+}
+
+.ds-preset-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.ds-toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 220px;
+  max-width: 380px;
+}
+
+.ds-search-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0 10px;
+  height: 34px;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.ds-search-bar:focus-within {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.ds-search-bar svg {
+  color: var(--muted);
+}
+
+.ds-search-bar input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
+}
+
+.ds-search-bar input::placeholder {
+  color: var(--muted);
+}
+
+.ds-toolbar-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.ds-btn:hover {
+  background: var(--sunk);
+  border-color: var(--line2);
+  transform: translateY(-1px);
+}
+
+.ds-btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 80%, black) 100%);
+  color: var(--accent-ink);
+  border-color: transparent;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.ds-btn-primary:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 90%, white) 0%, var(--accent) 100%);
+  color: var(--accent-ink);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.ds-btn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--bad) 15%, var(--surface));
+  color: var(--bad);
+  margin-left: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Modern KPI Cards Grid: EXACTLY 5 Cards in Row 1, 5 Cards in Row 2
+   -------------------------------------------------------------------------- */
+.ds-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 1240px) {
+  .ds-kpis-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+.ds-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 15px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04), 0 2px 6px -2px rgba(15, 26, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: default;
+  min-width: 0;
+}
+
+.ds-kpi-card[href],
+a.ds-kpi-card {
+  cursor: pointer;
+}
+
+.ds-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--card-accent, var(--accent)) 35%, var(--line));
+  box-shadow: 0 8px 18px -4px rgba(15, 26, 42, 0.08);
+}
+
+.ds-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--accent));
+  opacity: 0.9;
+}
+
+.ds-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ds-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--card-accent, var(--accent)) 12%, transparent);
+  color: var(--card-accent, var(--accent));
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.ds-kpi-card:hover .ds-kpi-icon {
+  transform: scale(1.06);
+}
+
+.ds-kpi-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.ds-kpi-chip.is-ok {
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
+}
+
+.ds-kpi-chip.is-bad {
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  color: var(--bad);
+}
+
+.ds-kpi-chip.is-warn {
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  color: var(--warn);
+}
+
+.ds-kpi-chip.is-info {
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+}
+
+.ds-kpi-chip.is-neutral {
+  background: var(--sunk);
+  color: var(--muted);
+}
+
+.ds-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-kpi-val {
+  font: 800 25px/1.1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.ds-kpi-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-kpi-footer {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bad State KPI */
+.ds-kpi-card.is-bad {
+  background: color-mix(in srgb, var(--bad) 4%, var(--surface));
+  border-color: color-mix(in srgb, var(--bad) 30%, var(--line));
+}
+
+.ds-kpi-card.is-bad::before {
+  background: var(--bad);
+}
+
+.ds-kpi-card.is-bad .ds-kpi-val {
+  color: var(--bad);
+}
+
+/* --------------------------------------------------------------------------
+   3. Visual Analytics & Velocity Bar
+   -------------------------------------------------------------------------- */
+.ds-analytics-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .ds-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ds-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ds-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ds-chart-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ds-chart-title svg {
+  color: var(--accent);
+}
+
+.ds-chart-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ds-chart-metric-pill {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: var(--sunk);
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.ds-chart-metric-pill b {
+  color: var(--fg);
+}
+
+.ds-pipeline-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ds-pipeline-bar-wrapper {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--sunk);
+  overflow: hidden;
+  display: flex;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.ds-pipeline-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.ds-pipeline-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: var(--sunk);
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+.ds-pipeline-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.ds-pipeline-legend-item b {
+  font-family: var(--mono);
+  color: var(--fg);
+}
+
+/* --------------------------------------------------------------------------
+   4. Section Headers & Layout Spacing
+   -------------------------------------------------------------------------- */
+.ds-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ds-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+.ds-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-section-title {
+  font: 700 17px var(--display);
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ds-section-title svg {
+  color: var(--accent);
+}
+
+.ds-section-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ds-section-subtitle {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.ds-status-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.ds-status-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ds-status-legend-item .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Projects Grid ("All Development")
+   -------------------------------------------------------------------------- */
+.ds-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.ds-project-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-project-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--mc, var(--accent));
+}
+
+.ds-project-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--mc, var(--accent)) 40%, var(--line));
+  box-shadow: 0 6px 16px -4px rgba(15, 26, 42, 0.08);
+}
+
+.ds-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ds-project-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-project-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--mc, var(--accent)) 12%, transparent);
+  color: var(--mc, var(--accent));
+}
+
+.ds-project-pct {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg);
+  background: var(--sunk);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.ds-project-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: var(--sunk);
+  border-radius: 8px;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.ds-project-m-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ds-project-m-val {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.ds-project-m-lbl {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.ds-project-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding-top: 2px;
+}
+
+.ds-project-footer b {
+  color: var(--fg);
+}
+
+/* --------------------------------------------------------------------------
+   6. Developers Today Grid & Card
+   -------------------------------------------------------------------------- */
+.ds-devs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 14px;
+}
+
+.ds-dev-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04), 0 2px 8px -2px rgba(15, 26, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ds-dev-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  box-shadow: 0 8px 20px -4px rgba(15, 26, 42, 0.08);
+}
+
+.ds-dev-card.is-mine {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 3%, var(--surface)) 0%, var(--surface) 100%);
+}
+
+.ds-dev-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ds-dev-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent) 0%, #1e40af 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.ds-dev-avatar-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  border: 2px solid var(--surface);
+  background: var(--ok);
+}
+
+.ds-dev-avatar-dot.no-update {
+  background: var(--warn);
+}
+
+.ds-dev-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-dev-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-dev-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-dev-title {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-dev-metrics-quad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.ds-dev-quad-box {
+  background: var(--sunk);
+  border-radius: 8px;
+  padding: 6px 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ds-dev-quad-val {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fg);
+}
+
+.ds-dev-quad-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ds-dev-moves-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.ds-dev-move-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: var(--sunk);
+  border-radius: 5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ds-dev-move-badge.is-ok {
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
+}
+
+.ds-dev-move-badge.is-bad {
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  color: var(--bad);
+}
+
+.ds-dev-standup-card {
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+}
+
+.ds-dev-standup-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.ds-dev-standup-tag {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  width: 54px;
+}
+
+.ds-dev-tasks-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-dev-tasks-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.ds-dev-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 9px;
+  background: var(--sunk);
+  border-radius: 7px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+  font-size: 12.5px;
+}
+
+.ds-dev-task-item:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--sunk));
+  transform: translateX(2px);
+}
+
+.ds-dev-task-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ds-dev-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.ds-dev-task-pct {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface);
+  padding: 1px 5px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.ds-dev-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   7. Heatmap Activity Matrix Table - STRICTLY ALIGNED & RIGID LAYOUT
+   -------------------------------------------------------------------------- */
+.ds-heatmap-wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04);
+  overflow: hidden;
+}
+
+.ds-heatmap-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ds-heatmap-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.ds-heatmap-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed; /* Guarantees mathematically aligned columns */
+  font-size: 13px;
+}
+
+.ds-th-dev {
+  width: 26%;
+  min-width: 170px;
+  text-align: left;
+  padding: 11px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--sunk);
+  border-bottom: 1px solid var(--line);
+}
+
+.ds-th-day {
+  width: 8.5%;
+  text-align: center;
+  padding: 10px 4px;
+  background: var(--sunk);
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+}
+
+.ds-th-day.is-selected-day {
+  background: color-mix(in srgb, var(--accent) 12%, var(--sunk));
+  color: var(--accent);
+}
+
+.ds-day-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ds-th-day.is-selected-day .ds-day-header-cell {
+  color: var(--accent);
+}
+
+.ds-th-metric {
+  width: 7.25%;
+  text-align: center;
+  padding: 11px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--sunk);
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.ds-td-dev {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  vertical-align: middle;
+}
+
+.ds-heatmap-dev-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ds-heatmap-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--sunk);
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.ds-heatmap-dev-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ds-heatmap-dev-name {
+  font-weight: 700;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-heatmap-dev-title {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-td-day {
+  padding: 8px 4px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+  background: var(--surface);
+}
+
+.ds-td-day.is-selected-col {
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+
+.ds-td-metric {
+  padding: 8px 6px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.ds-heatmap-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: transform 0.15s ease;
+}
+
+.ds-heatmap-cell.is-empty {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.ds-heatmap-cell.has-val:hover {
+  transform: scale(1.15);
+}
+
+.ds-heatmap-total-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 12.5px;
+  background: var(--sunk);
+  color: var(--fg);
+}
+
+.ds-heatmap-updates-badge {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+/* --------------------------------------------------------------------------
+   8. Activity Stream & Due / Blocked Two-Column Layout
+   -------------------------------------------------------------------------- */
+.ds-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .ds-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ds-panel-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(15, 26, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ds-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ds-panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ds-panel-title svg {
+  color: var(--accent);
+}
+
+.ds-empty-box {
+  padding: 24px 18px;
+  text-align: center;
+  background: var(--sunk);
+  border-radius: 10px;
+  border: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.ds-empty-box svg {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.ds-empty-box b {
+  font-size: 13.5px;
+  color: var(--fg);
+}
+
+.ds-empty-box p {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* List Item in Activity & Attention */
+.ds-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-item-card:hover {
+  background: var(--surface);
+  border-color: var(--line2);
+  transform: translateX(2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.ds-item-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3.5px;
+  background: var(--stripe-c, var(--accent));
+}
+
+.ds-item-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-item-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}

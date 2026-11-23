@@ -1,0 +1,22 @@
+# Self-hosting with PostgreSQL:   docker compose up -d   →  http://your-server:3000
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports: ["3000:3000"]
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      DATABASE_URL: postgres://dev360:${DB_PASSWORD:-dev360pass}@db:5432/dev360?schema=app
+      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-}
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+    depends_on: [db]
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dev360
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev360pass}
+      POSTGRES_DB: dev360
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+volumes:
+  pgdata:

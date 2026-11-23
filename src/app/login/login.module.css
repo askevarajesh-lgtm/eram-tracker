@@ -1,0 +1,855 @@
+/* Cosmic Glassmorphism Login & Signup UI (Eram Tracker Teal & Cyan Theme) */
+
+.page {
+  --auth-bg: #040912;
+  --auth-card: rgba(7, 18, 29, 0.74);
+  --auth-border: rgba(45, 212, 191, 0.22);
+  --auth-glow: rgba(20, 184, 166, 0.35);
+  --auth-text: #ffffff;
+  --auth-muted: rgba(203, 213, 225, 0.78);
+  --auth-input-bg: rgba(255, 255, 255, 0.045);
+  --auth-input-border: rgba(148, 163, 184, 0.16);
+  --auth-btn-grad: linear-gradient(90deg, #0d9488 0%, #14b8a6 45%, #2dd4bf 100%);
+  --auth-btn-shadow: 0 10px 28px rgba(20, 184, 166, 0.42);
+
+  position: relative;
+  min-height: 100svh;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--auth-bg);
+  color: var(--auth-text);
+  overflow-x: hidden;
+  font-family: var(--body);
+  isolation: isolate;
+}
+
+/* ───────── Top bar: Branding & Theme Switcher ───────── */
+.topBar {
+  position: relative;
+  z-index: 20;
+  width: 100%;
+  max-width: 1240px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 32px 10px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logoMark {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%);
+  color: #ffffff;
+  font: 800 12.5px var(--body);
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 18px rgba(45, 212, 191, 0.42), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  flex: none;
+}
+
+.logoInfo b {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.logoInfo small {
+  display: block;
+  font-size: 11px;
+  color: #5eead4;
+  margin-top: 1px;
+  letter-spacing: 0.02em;
+}
+
+.themeWrap :global(.themebtn) {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  border-radius: 11px;
+  padding: 3px;
+}
+
+.themeWrap :global(.themebtn button) {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11.5px;
+  padding: 5px 9px;
+}
+
+.themeWrap :global(.themebtn button[aria-pressed="true"]) {
+  background: rgba(20, 184, 166, 0.4);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.35);
+}
+
+/* ───────── Cosmic Background: Stars, Planetary Horizon & Atmosphere ───────── */
+.spaceScene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Starfield with realistic twinkling stars */
+.starField {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 15% 18%, #ffffff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 28% 12%, #ffffff 100%, transparent),
+    radial-gradient(1px 1px at 42% 25%, #5eead4 100%, transparent),
+    radial-gradient(2px 2px at 65% 15%, #ffffff 100%, transparent),
+    radial-gradient(1px 1px at 78% 22%, #ccfbf1 100%, transparent),
+    radial-gradient(1.5px 1.5px at 88% 10%, #ffffff 100%, transparent),
+    radial-gradient(1px 1px at 8% 42%, #ffffff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 22% 38%, #5eead4 100%, transparent),
+    radial-gradient(1px 1px at 75% 40%, #ffffff 100%, transparent),
+    radial-gradient(2px 2px at 92% 35%, #ffffff 100%, transparent),
+    radial-gradient(1px 1px at 35% 8%, #ccfbf1 100%, transparent),
+    radial-gradient(1.5px 1.5px at 52% 16%, #ffffff 100%, transparent),
+    radial-gradient(1px 1px at 12% 28%, #5eead4 100%, transparent),
+    radial-gradient(1px 1px at 84% 28%, #ffffff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 48% 32%, #ccfbf1 100%, transparent),
+    radial-gradient(1px 1px at 6% 12%, #ffffff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 96% 20%, #5eead4 100%, transparent);
+  background-repeat: repeat;
+  background-size: 550px 450px;
+  opacity: 0.85;
+}
+
+/* Deep teal nebula glow behind the card */
+.nebulaGlow {
+  position: absolute;
+  width: 90vw;
+  max-width: 1100px;
+  height: 520px;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse 65% 55% at 50% 50%,
+    rgba(45, 212, 191, 0.4) 0%,
+    rgba(20, 184, 166, 0.22) 40%,
+    rgba(15, 118, 110, 0.1) 65%,
+    transparent 80%
+  );
+  filter: blur(40px);
+}
+
+/* The curved planetary horizon spanning the screen */
+.planetHorizon {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 49%;
+  width: max(160vw, 1300px);
+  height: max(160vw, 1300px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 0%, #081926 0%, #040d16 45%, #01050a 80%);
+  border-top: 2px solid rgba(94, 234, 212, 0.95);
+  box-shadow:
+    0 -12px 35px rgba(45, 212, 191, 0.75),
+    0 -30px 90px rgba(20, 184, 166, 0.55),
+    0 -60px 150px rgba(13, 148, 136, 0.32);
+}
+
+/* Atmospheric light haze on top of horizon */
+.horizonGlow {
+  position: absolute;
+  width: 100%;
+  height: 240px;
+  top: calc(49% - 120px);
+  left: 0;
+  background: radial-gradient(
+    ellipse 75% 50% at 50% 50%,
+    rgba(94, 234, 212, 0.28) 0%,
+    rgba(45, 212, 191, 0.16) 45%,
+    transparent 78%
+  );
+  filter: blur(25px);
+}
+
+/* ───────── Floating 3D Sparkle Gems ───────── */
+.gem {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 24px rgba(20, 184, 166, 0.45));
+}
+
+.gemLeft {
+  left: calc(50% - 330px);
+  top: 38%;
+  width: 52px;
+  height: 52px;
+  animation: floatLeft 6.5s ease-in-out infinite;
+}
+
+.gemRight {
+  right: calc(50% - 330px);
+  top: 20%;
+  width: 48px;
+  height: 48px;
+  animation: floatRight 7.5s ease-in-out infinite;
+}
+
+.gemFar {
+  left: calc(50% - 420px);
+  top: 17%;
+  width: 32px;
+  height: 32px;
+  animation: floatFar 8s ease-in-out infinite;
+}
+
+.gemSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@keyframes floatLeft {
+  0%, 100% {
+    transform: translateY(0) rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: translateY(-13px) rotate(4deg) scale(1.05);
+  }
+}
+
+@keyframes floatRight {
+  0%, 100% {
+    transform: translateY(0) rotate(8deg) scale(1);
+  }
+  50% {
+    transform: translateY(-15px) rotate(-4deg) scale(1.04);
+  }
+}
+
+@keyframes floatFar {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(12deg);
+  }
+}
+
+/* ───────── Main Stage & Centered Glass Card ───────── */
+.mainStage {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 30px 20px 24px;
+  margin: auto 0;
+}
+
+.cardWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The perched 3D glass squircle icon sitting on top of the card */
+.appIcon {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+}
+
+.iconGlow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 26px;
+  background: radial-gradient(circle, rgba(94, 234, 212, 0.6) 0%, rgba(20, 184, 166, 0.3) 50%, transparent 80%);
+  filter: blur(12px);
+  z-index: 0;
+}
+
+.iconSquircle {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(
+    135deg,
+    rgba(204, 251, 241, 0.85) 0%,
+    rgba(45, 212, 191, 0.55) 45%,
+    rgba(15, 118, 110, 0.7) 100%
+  );
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 16px 40px rgba(20, 184, 166, 0.55),
+    inset 0 2px 4px rgba(255, 255, 255, 0.85),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+  animation: pulseIcon 4s ease-in-out infinite;
+}
+
+@keyframes pulseIcon {
+  0%, 100% {
+    box-shadow:
+      0 16px 40px rgba(20, 184, 166, 0.55),
+      inset 0 2px 4px rgba(255, 255, 255, 0.85),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 18px 48px rgba(45, 212, 191, 0.7),
+      inset 0 2px 4px rgba(255, 255, 255, 0.95),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.iconGraphic {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 2px 6px rgba(20, 184, 166, 0.55));
+}
+
+/* Glass Card */
+.card {
+  width: 100%;
+  background: var(--auth-card);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--auth-border);
+  border-radius: 28px;
+  padding: 56px 36px 36px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.72),
+    0 0 60px rgba(20, 184, 166, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18);
+  position: relative;
+  z-index: 2;
+}
+
+.cardHeader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font: 700 clamp(22px, 2.2vw, 25px) / 1.2 var(--display);
+  letter-spacing: -0.025em;
+  text-align: center;
+}
+
+.sub {
+  margin: 0;
+  color: var(--auth-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+/* Form Inputs */
+.nameRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.fieldCol {
+  min-width: 0;
+}
+
+.field {
+  margin-bottom: 15px;
+}
+
+.label {
+  display: block;
+  margin: 0 0 6px;
+  color: #cbd5e1;
+  font: 600 12px var(--body);
+}
+
+.inputIcon {
+  color: #5eead4 !important;
+  opacity: 0.85;
+}
+
+/* Ant Design Input Overrides inside the Glass Card */
+
+/* Outer wrapper for inputs with prefix / suffix (Email & Password) */
+.card :global(.ant-input-affix-wrapper) {
+  background: var(--auth-input-bg) !important;
+  border: 1px solid var(--auth-input-border) !important;
+  border-radius: 12px !important;
+  min-height: 48px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  box-shadow: none !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+  width: 100% !important;
+}
+
+.card :global(.ant-input-affix-wrapper-focused),
+.card :global(.ant-input-affix-wrapper:focus-within) {
+  border-color: #2dd4bf !important;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.22) !important;
+}
+
+/* INNER input inside affix wrapper - MUST BE COMPLETELY UNSTYLED & TRANSPARENT (prevents box-in-box) */
+.card :global(.ant-input-affix-wrapper > input.ant-input),
+.card :global(.ant-input-affix-wrapper input) {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+  color: #f8fafc !important;
+  font-size: 13.5px !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+}
+
+.card :global(.ant-input-affix-wrapper > input.ant-input:focus),
+.card :global(.ant-input-affix-wrapper input:focus) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Standalone inputs WITHOUT affix wrapper (e.g. First name & Last name) */
+.card :global(input.ant-input:not(.ant-input-affix-wrapper input)) {
+  background: var(--auth-input-bg) !important;
+  border: 1px solid var(--auth-input-border) !important;
+  border-radius: 12px !important;
+  min-height: 48px !important;
+  padding: 0 14px !important;
+  color: #f8fafc !important;
+  font-size: 13.5px !important;
+  box-shadow: none !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+}
+
+.card :global(input.ant-input:not(.ant-input-affix-wrapper input):focus) {
+  border-color: #2dd4bf !important;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.22) !important;
+  outline: none !important;
+}
+
+/* Prefix and Suffix */
+.card :global(.ant-input-prefix) {
+  margin-inline-end: 8px !important;
+  color: #5eead4 !important;
+  opacity: 0.9;
+  display: flex !important;
+  align-items: center !important;
+  flex: none !important;
+}
+
+.card :global(.ant-input-suffix) {
+  margin-inline-start: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  flex: none !important;
+}
+
+.card :global(.ant-input-password-icon) {
+  color: #94a3b8 !important;
+  cursor: pointer;
+  transition: color 0.14s;
+}
+
+.card :global(.ant-input-password-icon:hover) {
+  color: #5eead4 !important;
+}
+
+.card :global(.ant-input::placeholder),
+.card :global(input::placeholder) {
+  color: rgba(148, 163, 184, 0.55) !important;
+}
+
+/* WebKit Browser Autofill styling (eliminates the nested blue box and gives seamless background) */
+.card :global(input:-webkit-autofill),
+.card :global(input:-webkit-autofill:hover),
+.card :global(input:-webkit-autofill:focus),
+.card :global(input:-webkit-autofill:active) {
+  -webkit-text-fill-color: #f8fafc !important;
+  -webkit-box-shadow: 0 0 0 1000px #091a29 inset !important;
+  box-shadow: 0 0 0 1000px #091a29 inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: #2dd4bf !important;
+  border-radius: 6px !important;
+}
+
+/* Submit Action Button (SIGN IN / SIGN UP) */
+.submitBtn {
+  width: 100%;
+  height: 48px;
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--auth-btn-grad);
+  box-shadow: var(--auth-btn-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.38);
+  color: #ffffff;
+  font: 800 13.5px var(--body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(4, 32, 29, 0.4);
+  cursor: pointer;
+  transition: transform 0.16s, box-shadow 0.16s, filter 0.16s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 14px 34px rgba(20, 184, 166, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.errorMsg {
+  margin: 10px 0 0;
+  color: #f87171;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* Mode switcher */
+.switchMode {
+  margin: 18px 0 0;
+  text-align: center;
+  color: var(--auth-muted);
+  font-size: 12.5px;
+}
+
+.switchBtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #2dd4bf;
+  font: 600 12.5px var(--body);
+  cursor: pointer;
+  transition: color 0.14s, text-decoration 0.14s;
+}
+
+.switchBtn:hover {
+  color: #5eead4;
+  text-decoration: underline;
+}
+
+/* Security notice */
+.securityNotice {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 20px 0 0;
+  color: rgba(148, 163, 184, 0.7);
+  font-size: 11.5px;
+}
+
+.securityIcon {
+  color: #2dd4bf;
+  opacity: 0.85;
+}
+
+/* ───────── Footer ───────── */
+.footer {
+  position: relative;
+  z-index: 20;
+  padding: 10px 24px 22px;
+  color: rgba(148, 163, 184, 0.6);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ───────── Light Theme Support ───────── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .page {
+    --auth-bg: #f0fdfa;
+    --auth-card: rgba(255, 255, 255, 0.84);
+    --auth-border: rgba(20, 184, 166, 0.28);
+    --auth-text: #0f172a;
+    --auth-muted: #475569;
+    --auth-input-bg: rgba(248, 250, 252, 0.95);
+    --auth-input-border: rgba(203, 213, 225, 0.85);
+  }
+
+  :root:not([data-theme="dark"]) .logoInfo b {
+    color: #0f766e;
+  }
+
+  :root:not([data-theme="dark"]) .logoInfo small {
+    color: #14b8a6;
+  }
+
+  :root:not([data-theme="dark"]) .themeWrap :global(.themebtn) {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  :root:not([data-theme="dark"]) .themeWrap :global(.themebtn button) {
+    color: #64748b;
+  }
+
+  :root:not([data-theme="dark"]) .themeWrap :global(.themebtn button[aria-pressed="true"]) {
+    background: #ffffff;
+    color: #0f766e;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  :root:not([data-theme="dark"]) .planetHorizon {
+    background: radial-gradient(circle at 50% 0%, #e6fffa 0%, #f0fdfa 50%, #ffffff 100%);
+    border-top-color: rgba(20, 184, 166, 0.7);
+    box-shadow:
+      0 -8px 25px rgba(45, 212, 191, 0.45),
+      0 -24px 60px rgba(20, 184, 166, 0.22);
+  }
+
+  :root:not([data-theme="dark"]) .nebulaGlow {
+    background: radial-gradient(
+      ellipse 65% 55% at 50% 50%,
+      rgba(45, 212, 191, 0.35) 0%,
+      rgba(20, 184, 166, 0.15) 50%,
+      transparent 80%
+    );
+  }
+
+  :root:not([data-theme="dark"]) .title {
+    color: #0f172a;
+  }
+
+  :root:not([data-theme="dark"]) .label {
+    color: #334155;
+  }
+
+  :root:not([data-theme="dark"]) .inputIcon {
+    color: #0f766e !important;
+  }
+
+  :root:not([data-theme="dark"]) .card :global(.ant-input-affix-wrapper),
+  :root:not([data-theme="dark"]) .card :global(input.ant-input:not(.ant-input-affix-wrapper input)) {
+    background: rgba(248, 250, 252, 0.95) !important;
+    border-color: rgba(203, 213, 225, 0.85) !important;
+    color: #0f172a !important;
+  }
+
+  :root:not([data-theme="dark"]) .card :global(.ant-input-affix-wrapper > input.ant-input),
+  :root:not([data-theme="dark"]) .card :global(.ant-input-affix-wrapper input) {
+    color: #0f172a !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  :root:not([data-theme="dark"]) .card :global(input:-webkit-autofill),
+  :root:not([data-theme="dark"]) .card :global(input:-webkit-autofill:hover),
+  :root:not([data-theme="dark"]) .card :global(input:-webkit-autofill:focus),
+  :root:not([data-theme="dark"]) .card :global(input:-webkit-autofill:active) {
+    -webkit-text-fill-color: #0f172a !important;
+    -webkit-box-shadow: 0 0 0 1000px #f0fdfa inset !important;
+    box-shadow: 0 0 0 1000px #f0fdfa inset !important;
+  }
+
+  :root:not([data-theme="dark"]) .switchBtn {
+    color: #0f766e;
+  }
+
+  :root:not([data-theme="dark"]) .switchBtn:hover {
+    color: #115e59;
+  }
+}
+
+:root[data-theme="light"] .page {
+  --auth-bg: #f0fdfa;
+  --auth-card: rgba(255, 255, 255, 0.84);
+  --auth-border: rgba(20, 184, 166, 0.28);
+  --auth-text: #0f172a;
+  --auth-muted: #475569;
+  --auth-input-bg: rgba(248, 250, 252, 0.95);
+  --auth-input-border: rgba(203, 213, 225, 0.85);
+}
+
+:root[data-theme="light"] .logoInfo b {
+  color: #0f766e;
+}
+
+:root[data-theme="light"] .logoInfo small {
+  color: #14b8a6;
+}
+
+:root[data-theme="light"] .themeWrap :global(.themebtn) {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .themeWrap :global(.themebtn button) {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .themeWrap :global(.themebtn button[aria-pressed="true"]) {
+  background: #ffffff;
+  color: #0f766e;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .planetHorizon {
+  background: radial-gradient(circle at 50% 0%, #e6fffa 0%, #f0fdfa 50%, #ffffff 100%);
+  border-top-color: rgba(20, 184, 166, 0.7);
+  box-shadow:
+    0 -8px 25px rgba(45, 212, 191, 0.45),
+    0 -24px 60px rgba(20, 184, 166, 0.22);
+}
+
+:root[data-theme="light"] .nebulaGlow {
+  background: radial-gradient(
+    ellipse 65% 55% at 50% 50%,
+    rgba(45, 212, 191, 0.35) 0%,
+    rgba(20, 184, 166, 0.15) 50%,
+    transparent 80%
+  );
+}
+
+:root[data-theme="light"] .title {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .label {
+  color: #334155;
+}
+
+:root[data-theme="light"] .inputIcon {
+  color: #0f766e !important;
+}
+
+:root[data-theme="light"] .card :global(.ant-input-affix-wrapper),
+:root[data-theme="light"] .card :global(input.ant-input:not(.ant-input-affix-wrapper input)) {
+  background: rgba(248, 250, 252, 0.95) !important;
+  border-color: rgba(203, 213, 225, 0.85) !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .card :global(.ant-input-affix-wrapper > input.ant-input),
+:root[data-theme="light"] .card :global(.ant-input-affix-wrapper input) {
+  color: #0f172a !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] .card :global(input:-webkit-autofill),
+:root[data-theme="light"] .card :global(input:-webkit-autofill:hover),
+:root[data-theme="light"] .card :global(input:-webkit-autofill:focus),
+:root[data-theme="light"] .card :global(input:-webkit-autofill:active) {
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0 1000px #f0fdfa inset !important;
+  box-shadow: 0 0 0 1000px #f0fdfa inset !important;
+}
+
+:root[data-theme="light"] .switchBtn {
+  color: #0f766e;
+}
+
+:root[data-theme="light"] .switchBtn:hover {
+  color: #115e59;
+}
+
+/* ───────── Responsive Breakpoints ───────── */
+@media (max-width: 900px) {
+  .gemLeft {
+    left: calc(50% - 250px);
+    width: 42px;
+    height: 42px;
+  }
+  .gemRight {
+    right: calc(50% - 250px);
+    width: 38px;
+    height: 38px;
+  }
+  .gemFar {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .topBar {
+    padding: 18px 20px 8px;
+  }
+  .gemLeft,
+  .gemRight,
+  .gemFar {
+    display: none;
+  }
+  .cardWrapper {
+    max-width: 100%;
+  }
+  .card {
+    padding: 50px 22px 28px;
+    border-radius: 24px;
+  }
+  .nameRow {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .appIcon {
+    width: 68px;
+    height: 68px;
+    top: -34px;
+  }
+  .iconGraphic {
+    width: 38px;
+    height: 38px;
+  }
+  .title {
+    font-size: 21px;
+  }
+}

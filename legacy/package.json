@@ -1,0 +1,23 @@
+{
+  "name": "dev360-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev 360 Tracker - ERAM HCM development, users, licences and issues tracker with Excel upload and download",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed.js",
+    "set-password": "node scripts/set-password.js"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.4.1"
+  }
+}
