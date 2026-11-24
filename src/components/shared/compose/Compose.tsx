@@ -67,14 +67,23 @@ function ComposePanel({ opts, onClose }: { opts: ComposeOptions; onClose: () => 
     try { await navigator.clipboard.writeText(fillTemplate(body, vars(r))); toast("Message copied"); } catch { toast("Couldn't copy. Select the text and copy it yourself."); }
   };
   const label = data?.templates[tpl].label ?? "";
+  const dirty = !!data && (subject !== (opts.subject ?? data.templates[tpl]?.subject ?? "") || body !== (opts.body ?? data.templates[tpl]?.body ?? ""));
 
   return (
     <Panel
       wide
       title="Send a message"
       subtitle="Choose who gets it, check the text, then open WhatsApp or email for each person. You press Send in WhatsApp or your email app."
+      dirty={dirty}
       onClose={onClose}
-      footer={<><span className="muted" style={{ fontSize: 12 }}>If a button doesn't open anything, use Copy and paste the text.</span><div><button className="btn" type="button" onClick={onClose}>Close</button></div></>}
+      footer={({ requestClose }) => (
+        <>
+          <span className="muted" style={{ fontSize: 12 }}>If a button doesn't open anything, use Copy and paste the text.</span>
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Close</button>
+          </div>
+        </>
+      )}
     >
       {!data ? <p className="muted">Loading…</p> : (
         <>

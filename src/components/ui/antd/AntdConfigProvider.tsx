@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ConfigProvider, theme } from "antd";
 
 export function AntdConfigProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
     const syncAndCheck = () => {
@@ -12,21 +12,43 @@ export function AntdConfigProvider({ children }: { children: React.ReactNode }) 
         saved = localStorage.getItem("dev360theme");
       } catch {}
 
-      // If user has a saved preference, ensure DOM attribute is applied
-      if (saved === "light" || saved === "dark") {
-        if (document.documentElement.getAttribute("data-theme") !== saved) {
-          document.documentElement.setAttribute("data-theme", saved);
+      const isLogin = typeof window !== "undefined" && window.location.pathname.startsWith("/login");
+
+      if (saved === "light") {
+        if (document.documentElement.getAttribute("data-theme") !== "light") {
+          document.documentElement.setAttribute("data-theme", "light");
         }
-      } else if (saved === "auto") {
-        if (document.documentElement.hasAttribute("data-theme")) {
-          document.documentElement.removeAttribute("data-theme");
-        }
+        return false;
       }
 
-      const dataTheme = document.documentElement.getAttribute("data-theme") || saved;
-      if (dataTheme === "dark") return true;
-      if (dataTheme === "light") return false;
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (saved === "dark") {
+        if (document.documentElement.getAttribute("data-theme") !== "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+        return true;
+      }
+
+      if (isLogin) {
+        if (document.documentElement.getAttribute("data-theme") !== "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+        return true;
+      }
+
+      if (saved === "auto") {
+        const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const target = sysDark ? "dark" : "light";
+        if (document.documentElement.getAttribute("data-theme") !== target) {
+          document.documentElement.setAttribute("data-theme", target);
+        }
+        return sysDark;
+      }
+
+      // Default for all new users: dark mode
+      if (document.documentElement.getAttribute("data-theme") !== "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+      return true;
     };
 
     setIsDark(syncAndCheck());

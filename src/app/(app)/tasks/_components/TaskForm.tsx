@@ -1,11 +1,13 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
 import { Clock } from "lucide-react";
+import type { TaskStatus } from "@prisma/client";
 import { ACCEPT_STATUSES, PRIORITIES, REQ_STATUSES, TASK_STATUSES, TASK_TYPES, TEST_STATUSES } from "@/lib/constants";
 import type { Lookups } from "@/server/queries";
 import { deleteTask, saveTask, type TaskInput } from "@/server/tasks";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
+import { confirmAction } from "@/components/ui/ConfirmCloseModal";
 import { Chip } from "@/components/ui/Chip";
 import type { TaskDTO } from "./types";
 import type { DevLoadLite } from "@/server/extras";
@@ -22,10 +24,10 @@ type Form = {
   lead: string; description: string; notes: string;
 };
 
-const fromTask = (t: TaskDTO | null, defaultProjectId: string): Form => ({
+const fromTask = (t: TaskDTO | null, defaultProjectId: string, defaultStatus?: TaskStatus): Form => ({
   sno: t ? String(t.sno) : "",
   title: t?.title ?? "", projectId: t ? t.projectId : defaultProjectId, subModule: t?.subModule ?? "", type: t?.type ?? "",
-  reqStatus: t?.reqStatus ?? "Open", status: t?.status ?? "pending", priority: t?.priority ?? "", assigneeIds: t?.assigneeIds ?? [],
+  reqStatus: t?.reqStatus ?? "Open", status: t?.status ?? defaultStatus ?? "pending", priority: t?.priority ?? "", assigneeIds: t?.assigneeIds ?? [],
   companyId: t?.companyId ?? "", branch: t?.branch ?? "", endUsers: t?.endUsers ?? "", testStatus: t?.testStatus ?? "Open",
   acceptStatus: t?.acceptStatus ?? "Open", progress: t ? (t.status === "done" ? 100 : t.progress ?? 0) : 0,
   startDate: t?.startDate ?? "", dueDate: t?.dueDate ?? "", completedDate: t?.completedDate ?? "",
@@ -33,12 +35,12 @@ const fromTask = (t: TaskDTO | null, defaultProjectId: string): Form => ({
   description: t?.description ?? "", notes: t?.notes ?? "",
 });
 
-type Props = { task: TaskDTO | null; lookups: Lookups; defaultProjectId: string; canEdit: boolean; canDelete: boolean; viewerDeveloperId?: string | null; onClose: () => void };
+type Props = { task: TaskDTO | null; lookups: Lookups; defaultProjectId: string; defaultStatus?: TaskStatus; canEdit: boolean; canDelete: boolean; viewerDeveloperId?: string | null; onClose: () => void };
 
-export function TaskForm({ task, lookups, defaultProjectId, canEdit, canDelete, viewerDeveloperId = null, onClose }: Props) {
+export function TaskForm({ task, lookups, defaultProjectId, defaultStatus, canEdit, canDelete, viewerDeveloperId = null, onClose }: Props) {
   const [loads, setLoads] = useState<DevLoadLite[] | null>(null);
   const [sharing, setSharing] = useState(false);
-  const initial = useMemo(() => fromTask(task, defaultProjectId), [task, defaultProjectId]);
+  const initial = useMemo(() => fromTask(task, defaultProjectId, defaultStatus), [task, defaultProjectId, defaultStatus]);
   const [f, setF] = useState<Form>(initial);
   const [error, setError] = useState("");
   const [saving, start] = useTransition();
@@ -64,8 +66,16 @@ export function TaskForm({ task, lookups, defaultProjectId, canEdit, canDelete, 
     });
   };
 
-  const remove = () => {
-    if (!task || !confirm(`Delete task ${task.sno} “${task.title}”? This can't be undone.`)) return;
+  const remove = async () => {
+    if (!task) return;
+    const ok = await confirmAction({
+      title: `Delete task #${task.sno}?`,
+      message: `Delete task ${task.sno} “${task.title}”? This can't be undone.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     start(async () => {
       const r = await deleteTask(task.id);
       if (!r.ok) { setError(r.error); return; }
@@ -116,16 +126,16 @@ export function TaskForm({ task, lookups, defaultProjectId, canEdit, canDelete, 
       subtitle={task ? <>#{task.sno} · updated {new Date(task.updatedAt).toLocaleString()}{task.source ? ` · from ${task.source}` : ""}</> : undefined}
       dirty={dirty}
       onClose={onClose}
-      footer={
+      footer={({ requestClose }) => (
         <>
           <span>{task && canDelete && <button className="btn danger" type="button" onClick={remove} disabled={saving}>Delete</button>}</span>
           <div>
             {task && canEdit && loads && <button className="btn" type="button" title="Share or hand over" onClick={() => setSharing(true)}>⇄ Share</button>}
-            <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
             {canEdit && <button className="btn primary" type="submit" form="taskform" disabled={saving}>{saving ? "Saving…" : task ? "Save" : "Create task"}</button>}
           </div>
         </>
-      }
+      )}
     >
       <form className="form" id="taskform" onSubmit={submit}>
         {task

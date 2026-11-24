@@ -7,6 +7,11 @@ export const SNO_LOCK = 360361;
 export const lockSno = (tx: Prisma.TransactionClient) => tx.$executeRaw`SELECT pg_advisory_xact_lock(${SNO_LOCK})`;
 
 export async function nextSno(tx: Prisma.TransactionClient, projectId: string | null, exceptId?: string) {
-  const r = await tx.task.aggregate({ _max: { sno: true }, where: { projectId, ...(exceptId ? { NOT: { id: exceptId } } : {}) } });
+  const baseWhere: Prisma.TaskWhereInput = exceptId ? { NOT: { id: exceptId } } : {};
+  if (projectId) {
+    const r = await tx.task.aggregate({ _max: { sno: true }, where: { ...baseWhere, projectId } });
+    if (r._max.sno != null) return r._max.sno + 1;
+  }
+  const r = await tx.task.aggregate({ _max: { sno: true }, where: baseWhere });
   return (r._max.sno ?? 0) + 1;
 }

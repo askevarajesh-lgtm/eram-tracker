@@ -389,6 +389,27 @@ a.ds-kpi-card {
   color: var(--bad);
 }
 
+/* Warn State KPI */
+.ds-kpi-card.is-warn {
+  background: color-mix(in srgb, var(--warn) 4%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 30%, var(--line));
+}
+
+.ds-kpi-card.is-warn::before {
+  background: var(--warn);
+}
+
+.ds-kpi-card.is-warn .ds-kpi-val {
+  color: var(--warn);
+}
+
+/* Active Filtered KPI Card */
+.ds-kpi-card.is-active {
+  border-color: var(--card-accent, var(--accent)) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--card-accent, var(--accent)) 32%, transparent), 0 8px 20px -4px rgba(15, 26, 42, 0.12) !important;
+  transform: translateY(-2px);
+}
+
 /* --------------------------------------------------------------------------
    3. Visual Analytics & Velocity Bar
    -------------------------------------------------------------------------- */

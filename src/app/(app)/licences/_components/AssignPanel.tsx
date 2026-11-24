@@ -51,10 +51,15 @@ export function AssignPanel({ pool, pools, records, companies, onClose }: Props)
       title={`Assign ${pool.software} · ${pool.type}`}
       dirty={dirty}
       onClose={onClose}
-      footer={<><span /><div>
-        <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
-        <button className="btn primary" type="button" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save assignments"}</button>
-      </div></>}
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="button" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save assignments"}</button>
+          </div>
+        </>
+      )}
     >
       <div className="muted">
         <b style={{ color: over ? "var(--bad)" : "var(--fg)" }}>{counted} of {pool.quantity}</b> licences assigned
@@ -118,7 +123,7 @@ export function AssignPanel({ pool, pools, records, companies, onClose }: Props)
               dataSource={shown}
               columns={columns}
               rowKey="id"
-              pagination={shown.length > 20 ? { pageSize: 20 } : false}
+              pagination={shown.length > 10 ? { defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } : false}
               scroll={{ y: "45vh" }}
               emptyTitle="No one here"
               emptyDescription="Add people in Users & access first, or change the company filter."

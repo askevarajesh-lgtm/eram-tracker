@@ -142,7 +142,7 @@ export function UatView({ rows, total, signoffs, teams, canManage, people }: Pro
               dataSource={rows}
               columns={uatColumns}
               rowKey="id"
-              pagination={{ pageSize: 20, showSizeChanger: true }}
+              pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
               emptyTitle="Nothing waiting for sign-off"
               emptyDescription="Developed items that business users haven't accepted yet appear here."
             />

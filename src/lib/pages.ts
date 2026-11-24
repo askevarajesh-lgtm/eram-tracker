@@ -24,10 +24,6 @@ export const PAGES = {
     "title": "Data health",
     "subtitle": "Gaps that make the status report less reliable, with bulk fixes"
   },
-  "chat": {
-    "title": "Team chat",
-    "subtitle": "Internal communication by channel, with @mentions and issue links"
-  },
   "issues": {
     "title": "Urgent issues",
     "subtitle": "Raise and track urgent issues by token number, with response-time targets"

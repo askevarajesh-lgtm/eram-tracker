@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Download, Bell, ListFilter, ScrollText, Database } from "lucide-react";
 import { useState, useTransition } from "react";
 import { deleteTasksWhere, saveDeveloperContact, saveLists, saveNotifySettings } from "@/server/work";
 import { LIST_DEFAULTS, LIST_LABELS, TEMPLATE_DEFAULTS, WEEKDAYS, type Lists, type NotifySettings, type TemplateKey } from "@/lib/settings-defaults";
@@ -27,7 +27,41 @@ export function AdminPanelView(p: Props) {
   return (
     <>
       <div className="filters">
-        <SegLinks base="/admin-panel" param="tab" current={p.tab} items={[["notify", "Notifications"], ["lists", "Lists"], ["log", "Activity log"], ["data", "Data"]]} />
+        <SegLinks
+          base="/admin-panel"
+          param="tab"
+          current={p.tab}
+          items={[
+            [
+              "notify",
+              <>
+                <Bell size={15} />
+                <span>Notifications</span>
+              </>,
+            ],
+            [
+              "lists",
+              <>
+                <ListFilter size={15} />
+                <span>Lists</span>
+              </>,
+            ],
+            [
+              "log",
+              <>
+                <ScrollText size={15} />
+                <span>Activity log</span>
+              </>,
+            ],
+            [
+              "data",
+              <>
+                <Database size={15} />
+                <span>Data</span>
+              </>,
+            ],
+          ]}
+        />
         <span style={{ flex: 1 }} />
         <span className="muted" style={{ fontSize: 13 }}>Sign-in accounts are managed under <Link href="/accounts">Setup → Sign-in accounts</Link>.</span>
       </div>
@@ -267,7 +301,7 @@ function LogTab({ log, areas }: { log: Props["log"]; areas: string[] }) {
             dataSource={log}
             columns={logColumns}
             rowKey={(r, i) => r.at + r.who + i}
-            pagination={{ pageSize: 25, showSizeChanger: true }}
+            pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
             emptyTitle="No activity yet"
             emptyDescription="Every create, change and delete made in the tracker is recorded here."
           />

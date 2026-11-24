@@ -329,7 +329,7 @@ function ItemTable({ title, rows, D, extra }: { title: string; rows: Row[]; D: s
           dataSource={rows}
           columns={columns}
           rowKey="id"
-          pagination={rows.length > 15 ? { pageSize: 15 } : false}
+          pagination={rows.length > 10 ? { defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } : false}
           emptyText={`No ${title.toLowerCase()} items`}
         />
       </div>
@@ -358,8 +358,15 @@ function RolloutPanel({ companyId, projectId, data, onClose }: { companyId: stri
   );
   return (
     <Panel title={`${p.name} · ${c.name}`} subtitle={[c.country, data.holdingName && `${data.holdingName} group`].filter(Boolean).join(" · ")} dirty={dirty} onClose={onClose}
-      footer={<><span /><div><button className="btn" type="button" onClick={onClose}>Cancel</button>
-        <button className="btn primary" type="button" disabled={busy} onClick={() => start(async () => { setError(""); const res = await saveRollout({ ...f, companyId, projectId, status: f.status as "none" }); if (!res.ok) { setError(res.error); return; } toast("Saved"); onClose(); })}>Save</button></div></>}>
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="button" disabled={busy} onClick={() => start(async () => { setError(""); const res = await saveRollout({ ...f, companyId, projectId, status: f.status as "none" }); if (!res.ok) { setError(res.error); return; } toast("Saved"); onClose(); })}>Save</button>
+          </div>
+        </>
+      )}>
       <form className="form" onSubmit={e => e.preventDefault()}>
         <div className="field">
           <label htmlFor="ro_st">Implementation status</label>

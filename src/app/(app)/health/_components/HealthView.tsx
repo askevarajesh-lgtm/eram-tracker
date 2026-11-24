@@ -91,7 +91,7 @@ export function HealthView({ checks, developers, modules, canManage }: { checks:
                       dataSource={c.items as TaskItem[]}
                       columns={taskColumns}
                       rowKey="id"
-                      pagination={(c.items as TaskItem[]).length > 15 ? { pageSize: 15 } : false}
+                      pagination={(c.items as TaskItem[]).length > 10 ? { defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } : false}
                       emptyText="No items to fix"
                     />
                   </div>
@@ -125,9 +125,16 @@ function FixPanel({ check, developers, modules, onClose }: { check: Check; devel
     completed: sel([["_today", "Today's date"], ["_import", "Date the item was created / loaded"]]),
   }[field];
   return (
-    <Panel title={`Fix: ${check.label}`} subtitle={`${check.items.length} items. Applies to all of them; you can still change single items afterwards.`} onClose={onClose}
-      footer={<><span /><div><button className="btn" type="button" onClick={onClose}>Cancel</button>
-        <button className="btn primary" type="button" disabled={busy} onClick={() => start(async () => { setError(""); const r = await bulkFix(field, check.items.map(i => i.id), v); if (!r.ok) { setError(r.error); return; } toast(`Updated ${r.data!.count} items`); onClose(); })}>Apply to {check.items.length}</button></div></>}>
+    <Panel title={`Fix: ${check.label}`} subtitle={`${check.items.length} items. Applies to all of them; you can still change single items afterwards.`} dirty={!!v} onClose={onClose}
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="button" disabled={busy} onClick={() => start(async () => { setError(""); const r = await bulkFix(field, check.items.map(i => i.id), v); if (!r.ok) { setError(r.error); return; } toast(`Updated ${r.data!.count} items`); onClose(); })}>Apply to {check.items.length}</button>
+          </div>
+        </>
+      )}>
       <div className="field"><label htmlFor="bf_v">Set to</label>{control}</div>
       {error && <p role="alert" style={{ color: "var(--bad)", margin: 0 }}>{error}</p>}
     </Panel>

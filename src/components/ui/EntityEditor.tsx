@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { Panel } from "./Panel";
 import { toast } from "./Toaster";
+import { confirmAction } from "./ConfirmCloseModal";
 import { AntInput, AntTextArea, AntSelect, AntDatePicker } from "@/components/ui/antd";
 
 export type FieldDef<F> = {
@@ -61,16 +62,25 @@ export function EntityEditor<F extends Record<string, string>>({ title, initial,
       subtitle={subtitle}
       dirty={dirty}
       onClose={onClose}
-      footer={
+      footer={({ requestClose }) => (
         <>
-          <span>{!isNew && onDelete && <button className="btn danger" type="button" disabled={busy} onClick={() => confirm(deleteLabel ?? "Delete this record?") && run(onDelete, "Deleted")}>Delete</button>}</span>
+          <span>{!isNew && onDelete && <button className="btn danger" type="button" disabled={busy} onClick={async () => {
+            const ok = await confirmAction({
+              title: deleteLabel ?? "Delete this record?",
+              message: "Are you sure you want to delete this record? This action cannot be undone.",
+              confirmLabel: "Delete",
+              cancelLabel: "Cancel",
+              danger: true,
+            });
+            if (ok) run(onDelete, "Deleted");
+          }}>Delete</button>}</span>
           <div>
             {extraButtons}
-            <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
             {canSave && <button className="btn primary" type="submit" form="entityform" disabled={busy}>{busy ? "Saving…" : isNew ? "Create" : "Save"}</button>}
           </div>
         </>
-      }
+      )}
     >
       <form className="form" id="entityform" onSubmit={e => { e.preventDefault(); run(() => onSave(f), "Saved"); }}>
         {fields.map((d, i) => (

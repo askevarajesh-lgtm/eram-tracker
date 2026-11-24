@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Calendar, Mail } from "lucide-react";
+import { Bell, Calendar, ListOrdered, Mail } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { deleteMeeting, meetingActionsToTasks, saveMeeting } from "@/server/calendar";
 import { fmtDay, today } from "@/lib/dates";
@@ -82,8 +82,25 @@ export function CalendarView(p: Props) {
         <b style={{ font: "700 17px var(--display)", minWidth: 150, textAlign: "center" }}>{monthLabel}</b>
         <button className="btn" type="button" aria-label="Next month" onClick={() => shift(1)}>›</button>
         <button className="btn" type="button" onClick={() => update({ m: T.slice(0, 7), d: T })}>Today</button>
-        <span className="seg">
-          {(["month", "agenda"] as const).map(v => <button key={v} type="button" aria-pressed={p.view === v} onClick={() => update({ v: v === "month" ? null : v })}>{v === "month" ? "Month" : "Agenda"}</button>)}
+        <span className="seg" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-pressed={p.view === "month" || !p.view}
+            onClick={() => update({ v: null })}
+          >
+            <Calendar size={14} />
+            <span>Month</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-pressed={p.view === "agenda"}
+            onClick={() => update({ v: "agenda" })}
+          >
+            <ListOrdered size={14} />
+            <span>Agenda</span>
+          </button>
         </span>
         <span className="legend" style={{ marginLeft: 6 }}>
           {FILTERS.map(([k, l, c]) => (

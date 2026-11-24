@@ -7,7 +7,7 @@ import { LicencesView } from "./_components/LicencesView";
 
 export const metadata: Metadata = { title: "Licences" };
 
-type Search = { sw?: string; new?: string; edit?: string; assign?: string };
+type Search = { sw?: string; new?: string; edit?: string; assign?: string; tab?: string };
 
 export default async function LicencesPage({ searchParams }: { searchParams: Promise<Search> }) {
   const viewer = await requireViewer();
@@ -22,13 +22,28 @@ export default async function LicencesPage({ searchParams }: { searchParams: Pro
       select: { id: true, name: true, email: true, companyId: true, branch: true, dept: true, status: true, userType: true, company: { select: { name: true } }, licences: { select: { licenceId: true } } },
     }),
   ]);
+
+  const activeTab = sp.tab || (sp.edit || sp.assign || sp.new === "1" || sp.sw ? "list" : "dashboard");
+
   return (
     <LicencesView
       pools={pools}
       companies={companies}
       projects={projects}
-      records={records.map(r => ({ id: r.id, name: r.name, email: r.email, companyId: r.companyId ?? "", companyName: r.company?.name ?? "", branch: r.branch, dept: r.dept, status: r.status, userType: r.userType, licenceIds: r.licences.map(l => l.licenceId) }))}
+      records={records.map(r => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        companyId: r.companyId ?? "",
+        companyName: r.company?.name ?? "",
+        branch: r.branch,
+        dept: r.dept,
+        status: r.status,
+        userType: r.userType,
+        licenceIds: r.licences.map(l => l.licenceId),
+      }))}
       canManage={canManage(viewer)}
+      tab={activeTab === "list" ? "list" : "dashboard"}
       software={sp.sw ?? ""}
       openNew={sp.new === "1"}
       openId={sp.edit}

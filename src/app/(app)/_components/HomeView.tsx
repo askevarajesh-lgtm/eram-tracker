@@ -1668,11 +1668,11 @@ function StandupPanel({ dev, date, onClose }: { dev: DevCard; date: string; onCl
       })}
       dirty={dirty}
       onClose={onClose}
-      footer={
+      footer={({ requestClose }) => (
         <>
           <span />
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="ds-btn" type="button" onClick={onClose}>
+            <button className="ds-btn" type="button" onClick={requestClose}>
               Cancel
             </button>
             <button className="ds-btn ds-btn-primary" type="submit" form="suform" disabled={busy}>
@@ -1680,7 +1680,7 @@ function StandupPanel({ dev, date, onClose }: { dev: DevCard; date: string; onCl
             </button>
           </div>
         </>
-      }
+      )}
     >
       {dev.movedTodayTitles.length > 0 && (
         <div className="banner" style={{ margin: "0 0 16px" }}>

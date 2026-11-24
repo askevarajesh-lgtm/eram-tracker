@@ -9,7 +9,7 @@ import s from "./login.module.css";
 type Policy = { hasAccounts: boolean; open: boolean; domain: string | null };
 
 export function LoginForm({ policy, next, appName = "Eram Tracker" }: { policy: Policy; next: string; appName?: string }) {
-  const [mode, setMode] = useState<"login" | "signup">(policy.hasAccounts ? "login" : "signup");
+  const mode: "login" | "signup" = policy.hasAccounts ? "login" : "signup";
   const [loginState, loginAction, loginPending] = useActionState(login, undefined);
   const [signupState, signupAction, signupPending] = useActionState(signup, undefined);
   const [email, setEmail] = useState("");
@@ -139,23 +139,8 @@ export function LoginForm({ policy, next, appName = "Eram Tracker" }: { policy: 
         )}
 
         <button className={s.submitBtn} type="submit" disabled={pending}>
-          <span>{pending ? "PLEASE WAIT…" : su ? "SIGN UP" : "SIGN IN"}</span>
+          <span>{pending ? "PLEASE WAIT…" : su ? "CREATE ADMIN ACCOUNT" : "SIGN IN"}</span>
         </button>
-
-        {policy.hasAccounts && policy.open && (
-          <p className={s.switchMode}>
-            {su ? "Already have an account? " : "New here? "}
-            <button
-              type="button"
-              className={s.switchBtn}
-              onClick={() => {
-                setMode(su ? "login" : "signup");
-              }}
-            >
-              {su ? "Sign in" : "Create an account"}
-            </button>
-          </p>
-        )}
 
         <div className={s.securityNotice}>
           <LockKeyhole size={12} className={s.securityIcon} />

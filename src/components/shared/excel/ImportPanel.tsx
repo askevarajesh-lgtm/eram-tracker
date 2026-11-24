@@ -82,12 +82,17 @@ export function ImportPanel({ projects, onClose }: Props) {
       title="Upload data"
       dirty={!!parsed}
       onClose={onClose}
-      footer={<><span /><div>
-        <button className="btn" type="button" onClick={onClose}>Cancel</button>
-        <button className="btn primary" type="button" disabled={!preview || busy || !!nothing} onClick={doImport}>
-          {busy && preview ? "Importing…" : "Import"}
-        </button>
-      </div></>}
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="button" disabled={!preview || busy || !!nothing} onClick={doImport}>
+              {busy && preview ? "Importing…" : "Import"}
+            </button>
+          </div>
+        </>
+      )}
     >
       <p className="muted" style={{ margin: 0 }}>
         Bring in a status report or task list from Excel (.xlsx, .xls) or CSV. Columns are matched by name, so the SAP Over All Status Report layout works as it is.
@@ -222,7 +227,7 @@ export function ImportPanel({ projects, onClose }: Props) {
                     dataSource={changedRows}
                     columns={importColumns}
                     rowKey="index"
-                    pagination={{ pageSize: 15 }}
+                    pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
                     scroll={{ y: 320 }}
                     emptyText="No tasks to change"
                   />

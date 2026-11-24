@@ -5,6 +5,7 @@ import type { CompanyOption, LicencePool } from "@/server/queries";
 import { deleteLicence, saveLicence } from "@/server/licences";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
+import { confirmAction } from "@/components/ui/ConfirmCloseModal";
 import { AntInput, AntTextArea, AntSelect, AntDatePicker } from "@/components/ui/antd";
 
 type Props = {
@@ -51,10 +52,18 @@ export function LicenceForm({ pool, companies, projects, softwareList, defaultSo
     });
   };
 
-  const remove = () => {
+  const remove = async () => {
     if (!pool) return;
-    const msg = pool.holderIds.length ? `Delete this licence? It is released from ${pool.holderIds.length} ${pool.holderIds.length === 1 ? "person" : "people"}.` : "Delete this licence?";
-    if (!confirm(msg)) return;
+    const ok = await confirmAction({
+      title: `Delete ${pool.software} (${pool.type}) licence?`,
+      message: pool.holderIds.length
+        ? `Are you sure you want to delete this licence? It will be released from ${pool.holderIds.length} ${pool.holderIds.length === 1 ? "person" : "people"}.`
+        : `Are you sure you want to delete this licence? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     start(async () => {
       const r = await deleteLicence(pool.id);
       if (!r.ok) { setError(r.error); return; }
@@ -85,13 +94,15 @@ export function LicenceForm({ pool, companies, projects, softwareList, defaultSo
       title={pool ? "Edit licence" : "Add licence"}
       dirty={dirty}
       onClose={onClose}
-      footer={<>
-        <span>{pool && <button className="btn danger" type="button" disabled={busy} onClick={remove}>Delete</button>}</span>
-        <div>
-          <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
-          <button className="btn primary" type="submit" form="licform" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
-        </div>
-      </>}
+      footer={({ requestClose }) => (
+        <>
+          <span>{pool && <button className="btn danger" type="button" disabled={busy} onClick={remove}>Delete</button>}</span>
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="submit" form="licform" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+          </div>
+        </>
+      )}
     >
       <form className="form" id="licform" onSubmit={save}>
         <div className="field">

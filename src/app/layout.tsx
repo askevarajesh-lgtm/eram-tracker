@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { AntdConfigProvider } from "@/components/ui/antd";
+import { Toaster } from "@/components/ui/Toaster";
 import "./globals.css";
 
 const appName = process.env.APP_NAME || "Dev 360 Tracker";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 // Applies the saved theme (and collapsed-sidebar choice) before first paint, so dark-mode users never see a light flash.
-const themeScript = `(function(){try{var t=localStorage.getItem("dev360theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}else if(t==="auto"){document.documentElement.removeAttribute("data-theme");}if(localStorage.getItem("dev360side")==="mini"){document.documentElement.setAttribute("data-side","mini");}}catch(e){}})();`;
+const themeScript = `(function(){try{var t=localStorage.getItem("dev360theme");var isLogin=window.location.pathname.startsWith("/login");if(t==="light"){document.documentElement.setAttribute("data-theme","light");}else if(t==="dark"){document.documentElement.setAttribute("data-theme","dark");}else if(isLogin){document.documentElement.setAttribute("data-theme","dark");}else if(t==="auto"){var d=window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.setAttribute("data-theme",d?"dark":"light");}else{document.documentElement.setAttribute("data-theme","dark");}if(localStorage.getItem("dev360side")==="mini"){document.documentElement.setAttribute("data-side","mini");}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AntdRegistry>
           <AntdConfigProvider>
             {children}
+            <Toaster />
           </AntdConfigProvider>
         </AntdRegistry>
       </body>

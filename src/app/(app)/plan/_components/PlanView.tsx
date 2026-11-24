@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { Target, GitPullRequest, Rocket, AlertTriangle } from "lucide-react";
 import { deletePlanItem, saveChange, saveMilestone, saveRelease, saveRisk } from "@/server/plan";
 import { projectColor } from "@/lib/constants";
 import { fmtDay, today } from "@/lib/dates";
@@ -113,7 +114,45 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
   return (
     <>
       <div className="filters">
-        <SegLinks base="/plan" param="tab" current={tab} items={(Object.keys(NEW_LABEL) as (keyof typeof NEW_LABEL)[]).map(k => [k, <>{{ milestones: "Milestones", changes: "Change requests", releases: "Releases", risks: "Risks & dependencies" }[k]} <span className="mono muted">{counts[k]}</span></>])} />
+        <SegLinks
+          base="/plan"
+          param="tab"
+          current={tab}
+          items={[
+            [
+              "milestones",
+              <>
+                <Target size={15} />
+                <span>Milestones</span>
+                <span className="seg-badge">{counts.milestones}</span>
+              </>,
+            ],
+            [
+              "changes",
+              <>
+                <GitPullRequest size={15} />
+                <span>Change requests</span>
+                <span className="seg-badge">{counts.changes}</span>
+              </>,
+            ],
+            [
+              "releases",
+              <>
+                <Rocket size={15} />
+                <span>Releases</span>
+                <span className="seg-badge">{counts.releases}</span>
+              </>,
+            ],
+            [
+              "risks",
+              <>
+                <AlertTriangle size={15} />
+                <span>Risks &amp; dependencies</span>
+                <span className="seg-badge">{counts.risks}</span>
+              </>,
+            ],
+          ]}
+        />
         <span style={{ flex: 1 }} />
         {canAdd && <button className="btn primary" type="button" onClick={() => update({ new: "1", edit: null })}>+ {NEW_LABEL[tab]}</button>}
       </div>
@@ -238,7 +277,7 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               columns={changeColumns}
               rowKey="id"
               onRowClick={c => open(c.id)}
-              pagination={{ pageSize: 20, showSizeChanger: true }}
+              pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
               emptyTitle="No change requests"
               emptyDescription="Submit change requests to track feature scope and approvals."
             />
@@ -322,7 +361,7 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               columns={riskColumns}
               rowKey="id"
               onRowClick={r => open(r.id)}
-              pagination={{ pageSize: 20, showSizeChanger: true }}
+              pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
               emptyTitle="No risks or dependencies"
               emptyDescription="Record delivery risks, assumptions or dependency items."
             />

@@ -45,7 +45,6 @@ const LUCIDE_ICONS: Record<string, LucideIcon> = {
   issues: AlertCircle,
   calendar: Calendar,
   reminders: Bell,
-  chat: MessageSquare,
   admin: Building2,
   daily: CalendarCheck2,
   overview: BarChart2,

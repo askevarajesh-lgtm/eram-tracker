@@ -5,6 +5,7 @@ import type { CompanyOption, LicencePool } from "@/server/queries";
 import { deleteAccessRecord, saveAccessRecord } from "@/server/access";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
+import { confirmAction } from "@/components/ui/ConfirmCloseModal";
 import { AntInput, AntSelect, AntCheckbox } from "@/components/ui/antd";
 import type { AccessRow, ProjectCard } from "./types";
 
@@ -76,8 +77,16 @@ export function AccessForm({ record, projects, pools, companies, departments, de
     });
   };
 
-  const remove = () => {
-    if (!record || !confirm(`Delete ${record.name}? Their licences become free again.`)) return;
+  const remove = async () => {
+    if (!record) return;
+    const ok = await confirmAction({
+      title: `Delete ${record.name}?`,
+      message: `Are you sure you want to delete ${record.name}? Their licences will be freed up.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     start(async () => {
       const r = await deleteAccessRecord(record.id);
       if (!r.ok) { setError(r.error); return; }
@@ -99,13 +108,15 @@ export function AccessForm({ record, projects, pools, companies, departments, de
       subtitle="A record in the Users & access register. This person doesn't sign in to the tracker."
       dirty={dirty}
       onClose={onClose}
-      footer={<>
-        <span>{record && <button className="btn danger" type="button" disabled={busy} onClick={remove}>Delete</button>}</span>
-        <div>
-          <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
-          <button className="btn primary" type="submit" form="accessform" disabled={busy}>{busy ? "Saving…" : record ? "Save" : "Add person"}</button>
-        </div>
-      </>}
+      footer={({ requestClose }) => (
+        <>
+          <span>{record && <button className="btn danger" type="button" disabled={busy} onClick={remove}>Delete</button>}</span>
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="submit" form="accessform" disabled={busy}>{busy ? "Saving…" : record ? "Save" : "Add person"}</button>
+          </div>
+        </>
+      )}
     >
       <form className="form" id="accessform" onSubmit={save}>
         {text("name", "Name", { required: true, autoFocus: !record })}

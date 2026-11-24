@@ -7,6 +7,7 @@ import { decideIssue, deleteIssue, issueToTask, saveIssue } from "@/server/issue
 import { Chip } from "@/components/ui/Chip";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
+import { confirmAction } from "@/components/ui/ConfirmCloseModal";
 import { SlaCell } from "./IssuesView";
 import type { IssueDTO, IssueViewer, Sla } from "./types";
 import { Files } from "@/components/ui/Files";
@@ -77,17 +78,28 @@ export function IssueForm({ issue, lookups, sla, viewer, now, onClose }: Props) 
         : "A token number is created when you save."}
       dirty={dirty}
       onClose={onClose}
-      footer={<>
-        <span>{issue && viewer.canManage && <button className="btn danger" type="button" disabled={busy} onClick={() => confirm(`Delete ${issue.id}?`) && run(() => deleteIssue(issue.id), () => { toast("Issue deleted"); onClose(); })}>Delete</button>}</span>
-        <div>
-          {issue && viewer.canManage && issue.taskSno == null && (
-            <button className="btn" type="button" disabled={busy} onClick={() => run(() => issueToTask(issue.id), () => toast("Development task created"))}>→ Dev task</button>
-          )}
-          {issue && viewer.role !== "Viewer" && <button className="btn" type="button" title="Share or hand over" onClick={() => developerLoads().then(setLoads)}>⇄ Share</button>}
-          <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
-          <button className="btn primary" type="submit" form="issueform" disabled={busy}>{busy ? "Saving…" : issue ? "Save" : "Raise issue"}</button>
-        </div>
-      </>}
+      footer={({ requestClose }) => (
+        <>
+          <span>{issue && viewer.canManage && <button className="btn danger" type="button" disabled={busy} onClick={async () => {
+            const ok = await confirmAction({
+              title: `Delete ${issue.id}?`,
+              message: `Are you sure you want to delete ${issue.id}? This can't be undone.`,
+              confirmLabel: "Delete",
+              cancelLabel: "Cancel",
+              danger: true,
+            });
+            if (ok) run(() => deleteIssue(issue.id), () => { toast("Issue deleted"); onClose(); });
+          }}>Delete</button>}</span>
+          <div>
+            {issue && viewer.canManage && issue.taskSno == null && (
+              <button className="btn" type="button" disabled={busy} onClick={() => run(() => issueToTask(issue.id), () => toast("Development task created"))}>→ Dev task</button>
+            )}
+            {issue && viewer.role !== "Viewer" && <button className="btn" type="button" title="Share or hand over" onClick={() => developerLoads().then(setLoads)}>⇄ Share</button>}
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="submit" form="issueform" disabled={busy}>{busy ? "Saving…" : issue ? "Save" : "Raise issue"}</button>
+          </div>
+        </>
+      )}
     >
       <form className="form" id="issueform" onSubmit={save}>
         {input("title", "Issue", "e.g. Payroll posting fails for SMP", true)}

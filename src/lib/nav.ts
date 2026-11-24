@@ -9,7 +9,7 @@ const item = (key: PageKey, ready = false, extra: Partial<NavItem> = {}): NavIte
 });
 
 export const NAV: { group: string; items: NavItem[] }[] = [
-  { group: "Overview", items: [item("home", true), item("approvals", true, { managerOnly: true }), item("issues", true), item("calendar", true), item("reminders", true), item("chat", true), item("admin", true), item("daily", true)] },
+  { group: "Overview", items: [item("home", true), item("approvals", true, { managerOnly: true }), item("issues", true), item("calendar", true), item("reminders", true), item("admin", true), item("daily", true)] },
   { group: "Delivery", items: [item("overview", true), item("tasks", true), item("workload", true), item("uat", true), item("plan", true), item("reports", true), item("delivered", true), item("manuals", true)] },
   { group: "People & access", items: [item("developers", true), item("users", true), item("licences", true)] },
   { group: "Setup", items: [item("modules", true), item("health", true, { managerOnly: true }), item("accounts", true, { adminOnly: true }), item("panel", true, { adminOnly: true })] },

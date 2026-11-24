@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { dayStr } from "@/lib/dates";
 import { ACCEPT_STATUSES, REQ_STATUSES, TASK_TYPES, TEST_STATUSES } from "@/lib/constants";
 import { AUDIENCES, type Audience } from "@/lib/licensing";
-import { licencePools } from "./queries";
+import { licencePools, listTasks, type TaskFilters } from "./queries";
 
 const DEV_LABEL: Record<string, string> = { pending: "Open", progress: "In-Progress", qa: "Testing", uat: "UAT", done: "Completed", hold: "On Hold" };
 const WEIGHT: Record<string, number> = { pending: 0, progress: 50, qa: 75, uat: 90, hold: 25, done: 100 };
@@ -153,4 +153,162 @@ export async function buildWorkbook(template: boolean): Promise<Buffer> {
     ]), "Help");
   }
   return XLSX.write(wb, { bookType: "xlsx", type: "buffer" }) as Buffer;
+}
+
+/** Task-specific Excel export and upload template. */
+export async function buildTasksWorkbook(
+  filters: TaskFilters,
+  template = false,
+): Promise<{ buffer: Buffer; fileName: string }> {
+  const [projects, companies] = await Promise.all([
+    db.project.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    db.company.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+  ]);
+
+  const wb = XLSX.utils.book_new();
+  const dateStr = new Date().toISOString().slice(0, 10);
+
+  if (template) {
+    const example: Row[] = [
+      {
+        "S.No": 1,
+        Module: "Finance",
+        Details: "PettyCash Payment Report (example row: replace or delete)",
+        "Req.Type": "Report",
+        "Requirement Status": "Completed",
+        "Developer Name": "Riyaz & Arun",
+        "Development Status": "In-Progress",
+        Company: companies[0]?.code || companies[0]?.name || "ECL",
+        Branch: "MPD, SMP",
+        EndUsers: "Finance Team",
+        "EndUser Testing Status": "Open",
+        "EndUser Acceptance Status": "Open",
+        Project: projects[0]?.name ?? "SAP B1",
+        Ref: `${projects[0]?.code ?? "SAP"}-001`,
+        Priority: "High",
+        "Progress %": 50,
+        "Start Date": dateStr,
+        "Due Date": dateStr,
+        "Completed Date": "",
+        "Est Hours": 16,
+        Version: "1.0",
+        Description: "Detailed petty cash report for branches",
+        Notes: "Testing in progress",
+      },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, sheet(example, TASK_HEADER), "Tasks");
+
+    const helpRows: (string | number)[][] = [
+      ["Tasks Upload Guide & Allowed Values"],
+      [],
+      ["Column", "Allowed Values / Instructions"],
+      ["Details", "Required. The description or title of the task."],
+      ["Project", projects.length ? `System or project name (e.g. ${projects.map(p => p.name).join(", ")})` : "Project name"],
+      ["Development Status", "Open, In-Progress, Testing, UAT, Completed, On Hold (or Open / not started, Testing / QA, On hold / Blocked)"],
+      ["Requirement Status", ...REQ_STATUSES],
+      ["EndUser Testing Status", ...TEST_STATUSES],
+      ["EndUser Acceptance Status", ...ACCEPT_STATUSES],
+      ["Req.Type", ...TASK_TYPES],
+      ["Priority", "Critical, High, Medium, Low"],
+      ["Developer Name", "Developer name or multiple developers separated by & or comma (e.g. 'Riyaz & Arun')"],
+      ["Dates", "YYYY-MM-DD format (e.g. 2026-11-28) or standard Excel date cells"],
+      ["Progress %", "Number from 0 to 100"],
+      ["S.No", "Whole number (e.g. 1, 2, 3). If matching an existing task in that Project, it updates it. If blank, auto-numbered."],
+    ];
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(helpRows), "Allowed Values");
+
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "buffer" }) as Buffer;
+    return { buffer: buf, fileName: "Tasks_Upload_Template.xlsx" };
+  }
+
+  // Live export based on current filters
+  const tasks = await listTasks(filters);
+  const taskRow = (t: (typeof tasks)[number]): Row => ({
+    "S.No": t.sno,
+    Module: t.subModule,
+    Details: t.title,
+    "Req.Type": t.type,
+    "Requirement Status": t.reqStatus,
+    "Developer Name": t.assignees.map(a => a.developer.name).join(" & "),
+    "Development Status": DEV_LABEL[t.status] ?? t.status,
+    Company: t.company ? t.company.code || t.company.name : "",
+    Branch: t.branch,
+    EndUsers: t.endUsers,
+    "EndUser Testing Status": t.testStatus,
+    "EndUser Acceptance Status": t.acceptStatus,
+    Project: t.project?.name ?? "",
+    Ref: `${t.project?.code ?? "GEN"}-${String(t.sno).padStart(3, "0")}`,
+    Priority: t.priority ?? "",
+    "Progress %": progressOf(t),
+    "Start Date": dayStr(t.startDate),
+    "Due Date": dayStr(t.dueDate),
+    "Completed Date": dayStr(t.completedDate),
+    "Est Hours": t.estHours != null ? Number(t.estHours) : "",
+    Version: t.version,
+    Description: t.description,
+    Notes: t.notes,
+  });
+
+  const taskRows = tasks.map(taskRow);
+  XLSX.utils.book_append_sheet(wb, sheet(taskRows, TASK_HEADER), "Tasks");
+
+  // Summary Sheet
+  if (tasks.length > 0) {
+    const summaryRows: Row[] = [];
+    const sumRow = (p: string, m: string, G: typeof tasks): Row => ({
+      Project: p,
+      Module: m,
+      Total: G.length,
+      Screens: G.filter(i => i.type === "Screen").length,
+      Reports: G.filter(i => i.type === "Report").length,
+      Process: G.filter(i => i.type === "Process").length,
+      "Dev Completed": G.filter(i => i.status === "done").length,
+      "Dev In-Progress": G.filter(i => ["progress", "qa", "uat"].includes(i.status)).length,
+      "Dev Open": G.filter(i => i.status === "pending" || i.status === "hold").length,
+      "EU Testing Completed": G.filter(i => i.testStatus === "Completed").length,
+      "EU Accepted": G.filter(i => i.acceptStatus === "Accepted").length,
+      "Progress %": G.length ? Math.round(G.reduce((a, i) => a + progressOf(i), 0) / G.length) : 0,
+    });
+
+    const projectIds = [...new Set(tasks.map(t => t.projectId).filter(Boolean))] as string[];
+    for (const pid of projectIds) {
+      const projObj = projects.find(p => p.id === pid);
+      const pname = projObj?.name ?? "Other";
+      const L = tasks.filter(t => t.projectId === pid);
+      for (const m of [...new Set(L.map(t => t.subModule))].sort()) {
+        summaryRows.push(sumRow(pname, m || "(no module)", L.filter(t => t.subModule === m)));
+      }
+      summaryRows.push(sumRow(pname, "TOTAL", L));
+    }
+    XLSX.utils.book_append_sheet(
+      wb,
+      sheet(summaryRows, [
+        "Project",
+        "Module",
+        "Total",
+        "Screens",
+        "Reports",
+        "Process",
+        "Dev Completed",
+        "Dev In-Progress",
+        "Dev Open",
+        "EU Testing Completed",
+        "EU Accepted",
+        "Progress %",
+      ]),
+      "Summary",
+    );
+  }
+
+  let selectedProjectName = "";
+  if (filters.project && filters.project !== "_none") {
+    const found = projects.find(p => p.id === filters.project);
+    if (found) selectedProjectName = `_${found.name.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+  }
+
+  const fileName = `Tasks${selectedProjectName}_${dateStr}.xlsx`;
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "buffer" }) as Buffer;
+  return { buffer: buf, fileName };
 }

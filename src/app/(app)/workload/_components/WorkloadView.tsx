@@ -225,7 +225,15 @@ function HandoverPanel({ from, loads, onClose }: { from: DevLoad; loads: DevLoad
   const [busy, start] = useTransition();
   return (
     <Panel title={`Hand over ${from.name}'s work`} subtitle={`For leave cover or re-balancing. ${from.tasks.length} open items and ${from.issueList.length} open issues.`} onClose={onClose} dirty={!!note}
-      footer={<><span /><div><button className="btn" type="button" onClick={onClose}>Cancel</button><button className="btn primary" type="button" disabled={busy || !to} onClick={() => start(async () => { setError(""); const r = await handOver(from.id, to, scope, mode, note); if (!r.ok) { setError(r.error); return; } toast(`${r.data!.count} handed over to ${others.find(d => d.id === to)?.name}`); onClose(); })}>Hand over</button></div></>}>
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="button" disabled={busy || !to} onClick={() => start(async () => { setError(""); const r = await handOver(from.id, to, scope, mode, note); if (!r.ok) { setError(r.error); return; } toast(`${r.data!.count} handed over to ${others.find(d => d.id === to)?.name}`); onClose(); })}>Hand over</button>
+          </div>
+        </>
+      )}>
       <div className="field"><label htmlFor="ho_to">Hand over to</label><AntSelect id="ho_to" value={to} onChange={e => setTo(e.target.value)} options={others.map(d => [d.id, `${d.name} · ${d.score.toFixed(1)} load`])} /></div>
       <div className="field"><label htmlFor="ho_sc">What to hand over</label><AntSelect id="ho_sc" value={scope} onChange={e => setScope(e.target.value as "active")} options={[["active", "Active items and open issues"], ["all", "All open items and issues"], ["issues", "Open issues only"]]} /></div>
       <div className="field"><label htmlFor="ho_md">How</label><AntSelect id="ho_md" value={mode} onChange={e => setMode(e.target.value as "add")} options={[["add", `Add as collaborator (keep ${from.name} on them)`], ["handover", "Hand over fully"]]} /></div>

@@ -5,6 +5,9 @@ import { projectColor } from "@/lib/constants";
 import { Chip } from "@/components/ui/Chip";
 import { AntTable, type ColumnsType } from "@/components/ui/antd";
 import { EntityEditor, type FieldDef } from "@/components/ui/EntityEditor";
+import { RecordActions } from "@/components/ui/RecordActions";
+import { ProjectDetailModal } from "./ProjectDetailModal";
+import { toast } from "@/components/ui/Toaster";
 import { deleteProject, saveProject } from "@/server/projects";
 
 type Row = { id: string; name: string; code: string; fullName: string; phase: string; target: string; lead: string; total: number; done: number };
@@ -21,6 +24,7 @@ const FIELDS: FieldDef<Form>[] = [
 
 export function ProjectsView({ rows, canManage }: { rows: Row[]; canManage: boolean }) {
   const [open, setOpen] = useState<Row | "new" | null>(null);
+  const [viewing, setViewing] = useState<Row | null>(null);
   const cur = open && open !== "new" ? open : null;
   return (
     <>
@@ -87,6 +91,38 @@ export function ProjectsView({ rows, canManage }: { rows: Row[]; canManage: bool
               );
             },
           },
+          {
+            title: "Actions",
+            key: "actions",
+            align: "right" as const,
+            width: 110,
+            render: (_: unknown, r: Row) => (
+              <RecordActions
+                onView={() => setViewing(r)}
+                onEdit={canManage ? () => setOpen(r) : undefined}
+                onDelete={
+                  canManage
+                    ? async () => {
+                        const res = await deleteProject(r.id);
+                        if (!res.ok) {
+                          toast(res.error ?? "Failed to delete project");
+                        } else {
+                          toast(`Project ${r.name} deleted`);
+                        }
+                      }
+                    : undefined
+                }
+                deleteConfirmTitle={`Delete project ${r.name}?`}
+                deleteConfirmMessage={
+                  r.total > 0
+                    ? `Cannot delete project with ${r.total} existing task(s). Move or delete the tasks first.`
+                    : `Are you sure you want to delete project ${r.name}? This action cannot be undone.`
+                }
+                canEdit={canManage}
+                canDelete={canManage}
+              />
+            ),
+          },
         ];
 
         return (
@@ -94,7 +130,7 @@ export function ProjectsView({ rows, canManage }: { rows: Row[]; canManage: bool
             dataSource={rows}
             columns={columns}
             rowKey="id"
-            onRowClick={canManage ? r => setOpen(r) : undefined}
+            onRowClick={r => setViewing(r)}
             pagination={false}
             emptyTitle="No projects configured"
             emptyDescription="Add the modules or systems you are building to track tasks and progress."
@@ -102,6 +138,18 @@ export function ProjectsView({ rows, canManage }: { rows: Row[]; canManage: bool
           />
         );
       })()}
+      {viewing && (
+        <ProjectDetailModal
+          project={viewing}
+          canManage={canManage}
+          onEdit={() => {
+            const p = viewing;
+            setViewing(null);
+            setOpen(p);
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
       {open && (
         <EntityEditor<Form>
           key={cur?.id ?? "new"}

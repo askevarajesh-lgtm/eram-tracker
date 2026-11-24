@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { UserPlus, ArrowRightLeft } from "lucide-react";
 import { shareWork } from "@/server/work";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
@@ -46,11 +47,25 @@ export function SharePanel({
   });
   return (
     <Panel title="Share work" onClose={onClose} dirty={!!to.length || !!note}
-      footer={<><span /><div><button className="btn" type="button" onClick={onClose}>Cancel</button><button className="btn primary" type="button" disabled={busy || !to.length} onClick={go}>{mode === "add" ? "Share" : "Hand over"}</button></div></>}>
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className="btn primary" type="button" disabled={busy || !to.length} onClick={go}>{mode === "add" ? "Share" : "Hand over"}</button>
+          </div>
+        </>
+      )}>
       <p style={{ margin: 0 }}><b>{kind === "issue" ? id + " · " : ""}{title}</b><br /><span className="muted">Now with: {names(current) || "nobody"}</span></p>
       <div className="seg" role="radiogroup">
-        <button type="button" aria-pressed={mode === "add"} onClick={() => setMode("add")}>Add a collaborator</button>
-        <button type="button" aria-pressed={mode === "handover"} onClick={() => setMode("handover")}>Hand over</button>
+        <button type="button" aria-pressed={mode === "add"} onClick={() => setMode("add")}>
+          <UserPlus size={14} />
+          <span>Add a collaborator</span>
+        </button>
+        <button type="button" aria-pressed={mode === "handover"} onClick={() => setMode("handover")}>
+          <ArrowRightLeft size={14} />
+          <span>Hand over</span>
+        </button>
       </div>
       <p className="muted" style={{ margin: 0, fontSize: 13 }}>{mode === "add" ? "The selected developers work on it together with the current owner." : "Ownership moves to the selected developers. The current owner is removed."}</p>
       {(() => {

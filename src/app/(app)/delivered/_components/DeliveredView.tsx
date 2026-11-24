@@ -39,8 +39,10 @@ export function DeliveredView({ groups, tasks }: Props) {
       title: "S.No",
       dataIndex: "sno",
       key: "sno",
-      className: "num mono muted",
+      align: "left",
+      className: "mono muted",
       width: 75,
+      render: (sno: number) => <span className="mono" style={{ fontWeight: 500 }}>{sno}</span>,
     },
     {
       title: "Module",
@@ -129,7 +131,7 @@ export function DeliveredView({ groups, tasks }: Props) {
               dataSource={G}
               columns={deliveredColumns}
               rowKey="id"
-              pagination={{ pageSize: 20, showSizeChanger: true }}
+              pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
               emptyText="No delivered tasks"
             />
           </section>

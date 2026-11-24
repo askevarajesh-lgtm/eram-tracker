@@ -170,7 +170,7 @@ export function ManualsView(p: Props) {
             columns={manualColumns}
             rowKey="id"
             onRowClick={m => update({ edit: m.id })}
-            pagination={{ pageSize: 20, showSizeChanger: true }}
+            pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
             emptyTitle="No manuals match these filters"
             emptyDescription="Try clearing search or filter parameters to find manuals."
           />

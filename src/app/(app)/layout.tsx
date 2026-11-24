@@ -4,7 +4,7 @@ import { canEdit, canManage } from "@/lib/permissions";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Header } from "@/components/shell/Header";
 import { ModuleHeader } from "@/components/shell/ModuleHeader";
-import { Toaster } from "@/components/ui/Toaster";
+import { ConfirmModalHost } from "@/components/ui/ConfirmCloseModal";
 import { ComposeProvider } from "@/components/shared/compose/Compose";
 import pkg from "../../../package.json";
 
@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {children}
           </main>
         </div>
-        <Toaster />
+        <ConfirmModalHost />
       </div>
     </ComposeProvider>
   );

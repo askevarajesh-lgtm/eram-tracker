@@ -131,10 +131,15 @@ function DecidePanel({ q, act, developers, onClose }: { q: QueueItem; act: "appr
 
   return (
     <Panel title={`${approve ? "Approve" : "Reject"}: ${q.title}`} subtitle={q.ref} onClose={onClose} dirty={!!note}
-      footer={<><span /><div>
-        <button className="btn" type="button" onClick={onClose}>Cancel</button>
-        <button className={"btn " + (approve ? "primary" : "danger")} type="button" disabled={busy} onClick={go}>{approve ? "Approve" : "Reject"}</button>
-      </div></>}>
+      footer={({ requestClose }) => (
+        <>
+          <span />
+          <div>
+            <button className="btn" type="button" onClick={requestClose}>Cancel</button>
+            <button className={"btn " + (approve ? "primary" : "danger")} type="button" disabled={busy} onClick={go}>{approve ? "Approve" : "Reject"}</button>
+          </div>
+        </>
+      )}>
       <form className="form" onSubmit={e => e.preventDefault()}>
         {approve && q.kind !== "change" && (
           <div className="field full">

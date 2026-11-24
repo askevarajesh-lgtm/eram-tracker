@@ -48,8 +48,7 @@ export function SegLinks({ items, current, param, base }: { items: [string, Reac
   return (
     <span className="seg" role="tablist">
       {items.map(([k, l]) => (
-        <Link key={k} href={`${base}?${param}=${encodeURIComponent(k)}`} role="tab" aria-pressed={current === k}
-          style={{ textDecoration: "none", border: 0, color: current === k ? "var(--fg)" : "var(--muted)", padding: "6px 12px", font: "600 12.5px var(--body)", borderRadius: 7, background: current === k ? "var(--surface)" : "none", boxShadow: current === k ? "var(--sh)" : undefined }}>
+        <Link key={k} href={`${base}?${param}=${encodeURIComponent(k)}`} role="tab" aria-pressed={current === k}>
           {l}
         </Link>
       ))}

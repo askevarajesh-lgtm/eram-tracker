@@ -7,6 +7,9 @@ import { Chip } from "@/components/ui/Chip";
 import { toast } from "@/components/ui/Toaster";
 import { useUrlUpdate } from "@/components/ui/useUrl";
 import { AntSelect, AntCheckbox, AntTable, type ColumnsType } from "@/components/ui/antd";
+import { RecordActions } from "@/components/ui/RecordActions";
+import { deleteAccessRecord } from "@/server/access";
+import { AccessDetailModal } from "./AccessDetailModal";
 import { AccessForm } from "./AccessForm";
 import type { AccessRow, ProjectCard } from "./types";
 
@@ -28,6 +31,7 @@ export function AccessView({ rows, total, projects, pools, companies, department
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulkProject, setBulkProject] = useState(projects[0]?.id ?? "");
   const [busy, start] = useTransition();
+  const [viewing, setViewing] = useState<AccessRow | null>(null);
   // ticks show straight away; they fall back to the saved state if the server refuses
   const [pendingTicks, setPendingTick] = useOptimistic(new Map<string, boolean>(), (m, [k, v]: [string, boolean]) => new Map(m).set(k, v));
 
@@ -182,28 +186,43 @@ export function AccessView({ rows, total, projects, pools, companies, department
                 },
               ]
             : []),
-          ...(canManage
-            ? [
                 {
-                  title: "",
-                  key: "action",
+                  title: "Actions",
+                  key: "actions",
                   align: "right" as const,
+                  width: 110,
                   render: (_: unknown, r: AccessRow) => (
-                    <button className="btn" type="button" onClick={() => setOpen(r.id)}>
-                      Edit
-                    </button>
+                    <RecordActions
+                      onView={() => setViewing(r)}
+                      onEdit={canManage ? () => setOpen(r.id) : undefined}
+                      onDelete={
+                        canManage
+                          ? async () => {
+                              const res = await deleteAccessRecord(r.id);
+                              if (!res.ok) {
+                                toast(res.error ?? "Failed to delete person");
+                              } else {
+                                toast(`${r.name} deleted`);
+                              }
+                            }
+                          : undefined
+                      }
+                      deleteConfirmTitle={`Delete ${r.name}?`}
+                      deleteConfirmMessage={`Are you sure you want to delete ${r.name} from Users & access? Any allocated licences will be freed up.`}
+                      canEdit={canManage}
+                      canDelete={canManage}
+                    />
                   ),
                 },
-              ]
-            : []),
-        ];
+              ];
 
         return (
           <AntTable<AccessRow>
             dataSource={rows}
             columns={columns}
             rowKey="id"
-            pagination={{ pageSize: 25, showSizeChanger: true, pageSizeOptions: ["15", "25", "50", "100"] }}
+            onRowClick={r => setViewing(r)}
+            pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
             emptyTitle={total === 0 ? "No one in the register yet" : "No one matches these filters"}
             emptyDescription={
               total === 0
@@ -214,6 +233,21 @@ export function AccessView({ rows, total, projects, pools, companies, department
           />
         );
       })()}
+
+      {viewing && (
+        <AccessDetailModal
+          record={viewing}
+          projects={projects}
+          pools={pools}
+          canManage={canManage}
+          onEdit={() => {
+            const id = viewing.id;
+            setViewing(null);
+            setOpen(id);
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
 
       {canManage && editing !== null && (
         <AccessForm

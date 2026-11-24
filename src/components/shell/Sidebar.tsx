@@ -39,13 +39,13 @@ export function Sidebar({ counts, role, version }: Props) {
   return (
     <>
       <aside className="side" id="side" aria-label="Main navigation">
-        <div className="logo">
+        <Link href="/" className="logo" style={{ textDecoration: "none" }}>
           <span className="mark">E</span>
           <div className="logotx">
             <b>ERAM HCM</b>
             <small>Business Tools <span className="tag">Tracker</span></small>
           </div>
-        </div>
+        </Link>
         <nav className="nav">
           {NAV.map(g => {
             const items = g.items.filter(i => (!i.adminOnly || role === "Admin") && (!i.managerOnly || canManage));

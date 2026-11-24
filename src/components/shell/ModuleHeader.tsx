@@ -8,6 +8,10 @@ export function ModuleHeader() {
   const path = usePathname();
   const nav = navByHref(path);
   const seg = path.split("/")[1] as keyof typeof PAGES;
+  // If route is an unmatched or unknown route (like /chat or /404), suppress the module header so NotFoundView has full visual control
+  if (!nav && !(seg in PAGES) && path !== "/") {
+    return null;
+  }
   const key = nav?.key ?? (seg in PAGES ? seg : "home");
   const page = PAGES[key];
   if (!page) return null;

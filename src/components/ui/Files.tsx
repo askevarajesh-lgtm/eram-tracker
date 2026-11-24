@@ -4,6 +4,7 @@ import { X, Paperclip } from "lucide-react";
 import { setFiles } from "@/server/work";
 import type { FileRef } from "@/lib/work";
 import { toast } from "./Toaster";
+import { confirmAction } from "./ConfirmCloseModal";
 
 /** Files attached to a task, issue or manual: list, open, upload, remove. */
 export function Files({ kind, id, files, canEdit, canRemove }: { kind: "task" | "issue" | "manual"; id: string; files: FileRef[]; canEdit: boolean; canRemove: boolean }) {
@@ -26,7 +27,14 @@ export function Files({ kind, id, files, canEdit, canRemove }: { kind: "task" | 
     } finally { setBusy(false); }
   };
   const remove = async (f: FileRef) => {
-    if (!confirm(`Remove ${f.name}?`)) return;
+    const ok = await confirmAction({
+      title: "Remove file?",
+      message: `Are you sure you want to remove ${f.name}?`,
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     const next = list.filter(x => x.id !== f.id);
     const s = await setFiles(kind, id, next);
     if (!s.ok) { toast(s.error); return; }

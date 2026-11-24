@@ -123,11 +123,12 @@ async function apply(tx: Tx, viewer: Viewer, p: ReturnType<typeof importPayload.
     const bySno = new Map(existing.map(t => [`${t.projectId ?? ""}|${t.sno}`, t]));
     const byTitle = new Map(existing.map(t => [`${t.projectId ?? ""}|${norm(t.title)}|${norm(t.subModule)}`, t]));
     const maxSno = new Map<string, number>();
-    for (const t of existing) maxSno.set(t.projectId ?? "", Math.max(maxSno.get(t.projectId ?? "") ?? 0, t.sno));
-    for (const r of p.tasks) if (r.sno) { const k = r.project ? projIdx.get(norm(r.project)) ?? "" : defaultProjectId ?? ""; maxSno.set(k, Math.max(maxSno.get(k) ?? 0, r.sno)); }
+    const fallbackProjId = defaultProjectId || projects[0]?.id || "";
+    for (const t of existing) maxSno.set(t.projectId ?? fallbackProjId, Math.max(maxSno.get(t.projectId ?? fallbackProjId) ?? 0, t.sno));
+    for (const r of p.tasks) if (r.sno) { const k = r.project ? projIdx.get(norm(r.project)) ?? "" : fallbackProjId; maxSno.set(k, Math.max(maxSno.get(k) ?? 0, r.sno)); }
 
     for (const [index, r] of p.tasks.entries()) {
-      const pj = r.project ? await projectId(r.project) : defaultProjectId;
+      const pj = r.project ? await projectId(r.project) : (defaultProjectId || projects[0]?.id || null);
       const k = pj ?? "";
       // match: Ref (e.g. SAP-012), then project + S.No, then project + details + module
       let ex = undefined as (typeof existing)[number] | undefined;

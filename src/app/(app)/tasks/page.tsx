@@ -8,7 +8,7 @@ import { TasksView } from "./_components/TasksView";
 
 export const metadata: Metadata = { title: "Tasks & assignment" };
 
-type Search = { q?: string; project?: string; status?: string; dev?: string; priority?: string; new?: string; edit?: string };
+type Search = { q?: string; project?: string; status?: string; dev?: string; priority?: string; new?: string; edit?: string; view?: string };
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Search> }) {
   const viewer = await requireViewer();
@@ -29,6 +29,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         openId={sp.edit}
         viewerDeveloperId={viewer.developerId}
         defaultProjectId={sp.project && sp.project !== "_none" ? sp.project : lk.projects[0]?.id ?? ""}
+        initialView={sp.view === "kanban" ? "kanban" : "list"}
       />
     </>
   );

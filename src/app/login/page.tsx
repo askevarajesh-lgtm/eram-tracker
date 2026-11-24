@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { getViewer } from "@/lib/session";
 import { signupPolicy } from "@/lib/signup-policy";
 import { LoginForm } from "./LoginForm";
@@ -16,7 +15,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className={s.page}>
-      {/* Top corporate branding & theme switch */}
+      {/* Top corporate branding */}
       <header className={s.topBar}>
         <div className={s.logo}>
           <span className={s.logoMark}>ERAM</span>
@@ -24,9 +23,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <b>Eram Tracker</b>
             <small>Business Tools · ERAM HCM</small>
           </div>
-        </div>
-        <div className={s.themeWrap}>
-          <ThemeToggle />
         </div>
       </header>
 

@@ -83,7 +83,8 @@ export async function saveTask(
   )
     return fail(`Your role (${viewer.role}) can't change this task.`);
 
-  const projectId = f.projectId || null;
+  const defaultProj = !f.projectId ? await db.project.findFirst({ orderBy: { sortOrder: "asc" } }) : null;
+  const projectId = f.projectId || defaultProj?.id || null;
   const assigneeIds = [...new Set(f.assigneeIds)];
   const becameDone = f.status === "done" && existing?.status !== "done";
   const data = {
@@ -174,6 +175,85 @@ export async function saveTask(
   }
 }
 
+export async function updateTaskStatus(
+  id: string,
+  status: TaskStatus,
+): Promise<ActionResult<{ id: string; status: TaskStatus; sno: number }>> {
+  const viewer = await requireViewer();
+  const existing = await db.task.findUnique({
+    where: { id },
+    include: { assignees: true },
+  });
+  if (!existing)
+    return fail("This task no longer exists. It may have been deleted.");
+  if (
+    !canWriteTask(
+      viewer,
+      existing.assignees.map((a) => a.developerId),
+      existing.assignees.map((a) => a.developerId),
+    )
+  ) {
+    return fail(`Your role (${viewer.role}) can't change this task.`);
+  }
+
+  if (existing.status === status) {
+    return { ok: true, data: { id, status, sno: existing.sno } };
+  }
+
+  const becameDone = status === "done" && existing.status !== "done";
+  const wasDone = existing.status === "done" && status !== "done";
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id },
+        data: {
+          status,
+          progress:
+            status === "done"
+              ? 100
+              : wasDone
+              ? existing.progress === 100
+                ? 90
+                : existing.progress
+              : existing.progress,
+          completedDate: becameDone
+            ? toDay(today())
+            : wasDone
+            ? null
+            : existing.completedDate,
+        },
+      });
+
+      await tx.taskEvent.create({
+        data: {
+          taskId: id,
+          kind: "status",
+          fromStatus: existing.status,
+          toStatus: status,
+        },
+      });
+
+      await audit(
+        tx,
+        viewer,
+        "update",
+        "task",
+        id,
+        `Moved task #${existing.sno} to ${status}`,
+      );
+    });
+
+    revalidatePath("/", "layout");
+    return { ok: true, data: { id, status, sno: existing.sno } };
+  } catch (e) {
+    return fail(
+      "Failed to update task status: " +
+        (e instanceof Error ? e.message : String(e)),
+    );
+  }
+}
+
 export async function deleteTask(id: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   const t = await db.task.findUnique({
@@ -209,6 +289,13 @@ export async function renumberTasks(
   const result = await db.$transaction(
     async (tx) => {
       await lockSno(tx);
+      const defaultProj = await tx.project.findFirst({ orderBy: { sortOrder: "asc" } });
+      if (defaultProj) {
+        await tx.task.updateMany({
+          where: { projectId: null },
+          data: { projectId: defaultProj.id },
+        });
+      }
       const rows = await tx.task.findMany({
         where: projectId === undefined ? {} : { projectId },
         select: { id: true, projectId: true, sno: true },

@@ -52,12 +52,10 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { name, email, password } = parsed.data;
   const n = await db.account.count();
-  const doms = allowedDomains();
-  const allowed = n === 0 || (doms.length ? doms.some(d => email.endsWith("@" + d)) : String(process.env.ALLOW_SIGNUP || "").toLowerCase() === "true");
-  if (!allowed) return { error: "Sign-up is closed. Ask an admin to create your account." };
+  if (n > 0) return { error: "Registration is disabled. User accounts must be added from inside the CRM." };
   if (await db.account.findUnique({ where: { email } })) return { error: "An account with this email already exists. Sign in instead." };
   const acc = await db.account.create({
-    data: { name, email, passwordHash: hashPassword(password), isOwner: n === 0, role: n === 0 ? "Admin" : "Viewer" },
+    data: { name, email, passwordHash: hashPassword(password), isOwner: true, role: "Admin" },
   });
   await startSession(acc.id);
   redirect(safeNext(form.get("next")));
