@@ -34,7 +34,7 @@ const taskColumns: ColumnsType<TaskItem> = [
     dataIndex: "title",
     key: "title",
     render: (title: string, t: TaskItem) => (
-      <Link href={`/tasks?edit=${t.id}`} style={{ color: "inherit", fontWeight: 500 }}>
+      <Link href={`/tasks?view=${t.id}`} style={{ color: "inherit", fontWeight: 500 }}>
         {title}
       </Link>
     ),

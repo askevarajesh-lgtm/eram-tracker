@@ -7,7 +7,7 @@ import { RemindersView } from "./_components/RemindersView";
 
 export const metadata: Metadata = { title: "Reminders" };
 
-export default async function RemindersPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
+export default async function RemindersPage({ searchParams }: { searchParams: Promise<{ edit?: string; view?: string; new?: string }> }) {
   const viewer = await requireViewer();
   const sp = await searchParams;
   const [{ reminders, auto, developers }, tasks] = await Promise.all([
@@ -17,6 +17,6 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
   return (
     <RemindersView reminders={reminders} auto={auto} developers={developers}
       tasks={tasks.map(t => ({ id: t.id, label: `${t.project?.name ?? ""} · ${t.title}` }))}
-      canEdit={canEdit(viewer)} canManage={canManage(viewer)} openId={sp.edit} openNew={sp.new === "1"} />
+      canEdit={canEdit(viewer)} canManage={canManage(viewer)} openId={sp.edit} openViewId={sp.view} openNew={sp.new === "1"} />
   );
 }

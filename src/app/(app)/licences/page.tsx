@@ -7,7 +7,7 @@ import { LicencesView } from "./_components/LicencesView";
 
 export const metadata: Metadata = { title: "Licences" };
 
-type Search = { sw?: string; new?: string; edit?: string; assign?: string; tab?: string };
+type Search = { sw?: string; new?: string; edit?: string; view?: string; assign?: string; tab?: string };
 
 export default async function LicencesPage({ searchParams }: { searchParams: Promise<Search> }) {
   const viewer = await requireViewer();
@@ -23,7 +23,7 @@ export default async function LicencesPage({ searchParams }: { searchParams: Pro
     }),
   ]);
 
-  const activeTab = sp.tab || (sp.edit || sp.assign || sp.new === "1" || sp.sw ? "list" : "dashboard");
+  const activeTab = sp.tab || (sp.view || sp.edit || sp.assign || sp.new === "1" || sp.sw ? "list" : "dashboard");
 
   return (
     <LicencesView
@@ -47,6 +47,7 @@ export default async function LicencesPage({ searchParams }: { searchParams: Pro
       software={sp.sw ?? ""}
       openNew={sp.new === "1"}
       openId={sp.edit}
+      openViewId={sp.view}
       assignId={sp.assign}
     />
   );

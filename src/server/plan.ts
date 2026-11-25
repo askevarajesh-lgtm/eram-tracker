@@ -58,11 +58,20 @@ export async function saveChange(raw: ChangeInput): Promise<ActionResult<{ id: s
     let crId = id;
     if (id) await tx.changeRequest.update({ where: { id }, data: { ...data, ...(status ? { status } : {}) } });
     else {
-      // CR-YYMMDD-NN, numbered per day
+      // CR-YYMMDD-NN, numbered per day. Reuses any deleted or missing sequence numbers.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(360363)`;
       const prefix = `CR-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-`;
-      const last = await tx.changeRequest.findFirst({ where: { id: { startsWith: prefix } }, orderBy: { id: "desc" }, select: { id: true } });
-      crId = prefix + String((last ? parseInt(last.id.slice(prefix.length), 10) : 0) + 1).padStart(2, "0");
+      const rows = await tx.changeRequest.findMany({ where: { id: { startsWith: prefix } }, select: { id: true } });
+      const used = new Set(
+        rows
+          .map(r => parseInt(r.id.slice(prefix.length), 10))
+          .filter(n => Number.isInteger(n) && n > 0)
+      );
+      let candidate = 1;
+      while (used.has(candidate)) {
+        candidate++;
+      }
+      crId = prefix + String(candidate).padStart(2, "0");
       await tx.changeRequest.create({ data: { ...data, id: crId, status: "Submitted" } });
     }
     await audit(tx, viewer, id ? "update" : "create", "change", crId!, f.title);

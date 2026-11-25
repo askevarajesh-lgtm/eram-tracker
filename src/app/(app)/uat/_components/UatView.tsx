@@ -104,7 +104,7 @@ export function UatView({ rows, total, signoffs, teams, canManage, people }: Pro
             key: "title",
             render: (title: string, r: UatRow) => (
               <div>
-                <Link href={`/tasks?edit=${r.id}`} style={{ color: "inherit", fontWeight: 500 }}>
+                <Link href={`/tasks?view=${r.id}`} style={{ color: "inherit", fontWeight: 500 }}>
                   {title}
                 </Link>
                 {r.returned > 0 && <> <Chip color="var(--warn)">returned {r.returned}×</Chip></>}
@@ -166,7 +166,7 @@ export function UatView({ rows, total, signoffs, teams, canManage, people }: Pro
             dataIndex: "title",
             key: "title",
             render: (title: string, s: Signoff) => (
-              <Link href={`/tasks?edit=${s.id}`} style={{ color: "inherit" }}>
+              <Link href={`/tasks?view=${s.id}`} style={{ color: "inherit" }}>
                 {title}
               </Link>
             ),

@@ -69,7 +69,7 @@ export function IssueDetailModal({ issue, sla, viewer, now, onEdit, onClose }: P
             </Chip>
           )}
           {issue.taskSno != null && (
-            <Link href={`/tasks?edit=${issue.id}`} onClick={(e) => e.stopPropagation()}>
+            <Link href={issue.taskId ? `/tasks?view=${issue.taskId}` : `/tasks?q=${issue.taskSno}`} onClick={(e) => e.stopPropagation()}>
               <Chip color="var(--ok)">Linked to Dev Task #{issue.taskSno}</Chip>
             </Link>
           )}

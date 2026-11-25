@@ -83,7 +83,7 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
           initial={{ title: x?.title ?? "", description: x?.description ?? "", projectId: x?.projectId ?? "", subModule: x?.subModule ?? "", requestedBy: x?.requestedBy ?? "", companyId: x?.companyId ?? "", priority: x?.priority || "Medium", effort: x?.effort ?? "", status: x?.status ?? "Submitted" }}
           onSave={async v => { const r = await saveChange({ ...v, id: x?.id, status: x ? (v.status as "Submitted") : undefined }); return r.ok ? { ok: true } : r; }}
           onDelete={x && canManage ? () => deletePlanItem("change", x.id) : undefined} canSave={x ? canManage : canEdit}
-          extraButtons={x?.taskId ? <Link className="btn" href={`/tasks?edit=${x.taskId}`}>Open task #{x.taskSno}</Link> : undefined} />
+          extraButtons={x?.taskId ? <Link className="btn" href={`/tasks?view=${x.taskId}`}>Open task #{x.taskSno}</Link> : undefined} />
       );
     } else if (tab === "risks") {
       const x = data.risks.find(r => r.id === openId);
@@ -265,7 +265,7 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               render: (_: unknown, c: Change) => (
                 <div style={{ fontSize: 12 }}>
                   {c.decidedAt && `${c.decisionBy} · ${fmtDay(c.decidedAt.slice(0, 10))}`}
-                  {c.taskId && <> · <Link href={`/tasks?edit=${c.taskId}`} onClick={e => e.stopPropagation()}>task #{c.taskSno}</Link></>}
+                  {c.taskId && <> · <Link href={`/tasks?view=${c.taskId}`} onClick={e => e.stopPropagation()}>task #{c.taskSno}</Link></>}
                 </div>
               ),
             },

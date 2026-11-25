@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { isBusinessUser } from "@/lib/licensing";
 import type { CompanyOption, LicencePool } from "@/server/queries";
 import { setAppAccess } from "@/server/access";
@@ -23,15 +23,27 @@ type Props = {
   canManage: boolean;
   openNew: boolean;
   openId?: string;
+  openViewId?: string;
   defaultCompanyId: string;
 };
 
-export function AccessView({ rows, total, projects, pools, companies, departments, canManage, openNew, openId, defaultCompanyId }: Props) {
+export function AccessView({ rows, total, projects, pools, companies, departments, canManage, openNew, openId, openViewId, defaultCompanyId }: Props) {
   const { update } = useUrlUpdate();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulkProject, setBulkProject] = useState(projects[0]?.id ?? "");
   const [busy, start] = useTransition();
-  const [viewing, setViewing] = useState<AccessRow | null>(null);
+  const [viewing, setViewing] = useState<AccessRow | null>(() => {
+    return openViewId ? rows.find(r => r.id === openViewId) ?? null : null;
+  });
+
+  useEffect(() => {
+    if (openViewId) {
+      setViewing(rows.find(r => r.id === openViewId) ?? null);
+    } else {
+      setViewing(null);
+    }
+  }, [openViewId, rows]);
+
   // ticks show straight away; they fall back to the saved state if the server refuses
   const [pendingTicks, setPendingTick] = useOptimistic(new Map<string, boolean>(), (m, [k, v]: [string, boolean]) => new Map(m).set(k, v));
 
@@ -41,7 +53,7 @@ export function AccessView({ rows, total, projects, pools, companies, department
   const otherSoftware = useMemo(() => [...new Set(pools.map(p => p.software))].filter(sw => pools.filter(p => p.software === sw).every(p => !p.projectId)), [pools]);
 
   const editing = openNew ? "new" : openId ? rows.find(r => r.id === openId) ?? null : null;
-  const setOpen = (v: string | null) => update({ new: v === "new" ? "1" : null, edit: v && v !== "new" ? v : null });
+  const setOpen = (v: string | null) => update({ new: v === "new" ? "1" : null, edit: v && v !== "new" ? v : null, view: null });
 
   const toggle = (r: AccessRow, projectId: string, on: boolean) => start(async () => {
     setPendingTick([`${r.id}|${projectId}`, on]);
@@ -193,7 +205,10 @@ export function AccessView({ rows, total, projects, pools, companies, department
                   width: 110,
                   render: (_: unknown, r: AccessRow) => (
                     <RecordActions
-                      onView={() => setViewing(r)}
+                      onView={() => {
+                        setViewing(r);
+                        update({ view: r.id, edit: null });
+                      }}
                       onEdit={canManage ? () => setOpen(r.id) : undefined}
                       onDelete={
                         canManage
@@ -221,7 +236,10 @@ export function AccessView({ rows, total, projects, pools, companies, department
             dataSource={rows}
             columns={columns}
             rowKey="id"
-            onRowClick={r => setViewing(r)}
+            onRowClick={r => {
+              setViewing(r);
+              update({ view: r.id, edit: null });
+            }}
             pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
             emptyTitle={total === 0 ? "No one in the register yet" : "No one matches these filters"}
             emptyDescription={
@@ -245,7 +263,10 @@ export function AccessView({ rows, total, projects, pools, companies, department
             setViewing(null);
             setOpen(id);
           }}
-          onClose={() => setViewing(null)}
+          onClose={() => {
+            setViewing(null);
+            update({ view: null });
+          }}
         />
       )}
 

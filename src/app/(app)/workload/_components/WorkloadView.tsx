@@ -183,7 +183,7 @@ export function WorkloadView({ loads, sla, canManage, canEdit }: Props) {
               {d.issueList.map(x => {
                 const left = Date.parse(x.createdAt) + (sla[x.priority as keyof typeof sla] ?? 72) * 3600e3 - Date.now();
                 return (
-                  <Link key={x.id} href={`/issues?edit=${x.id}`} className="card" style={{ ["--mc" as string]: "var(--bad)", textDecoration: "none", color: "inherit" }}>
+                  <Link key={x.id} href={`/issues?view=${x.id}`} className="card" style={{ ["--mc" as string]: "var(--bad)", textDecoration: "none", color: "inherit" }}>
                     <div className="r"><span className="mono" style={{ fontWeight: 700, color: "var(--bad)" }}>{x.id}</span><Chip color={issuePriorityColor(x.priority)}>{x.priority}</Chip></div>
                     <div className="t">{x.title}</div>
                     <div className="r"><span>{left < 0 ? <Chip color="var(--bad)">Late {duration(-left)}</Chip> : <Chip color={left < 3600e3 ? "var(--warn)" : "var(--ok)"}>{duration(left)} left</Chip>}{sharedWith(x.others)}</span>{shareBtn("issue", x.id, x.title, x.others)}</div>
@@ -193,7 +193,7 @@ export function WorkloadView({ loads, sla, canManage, canEdit }: Props) {
               {[...act, ...op.slice(0, 8)].map((t, i) => (
                 <Fragment key={t.id}>
                   {i === act.length && <div className="muted" style={{ font: "600 11px var(--body)", letterSpacing: ".06em", textTransform: "uppercase", margin: "6px 4px 0" }}>Open · {op.length}</div>}
-                  <Link href={`/tasks?edit=${t.id}`} className="card" style={{ ["--mc" as string]: projectColor(t.project), textDecoration: "none", color: "inherit" }}>
+                  <Link href={`/tasks?view=${t.id}`} className="card" style={{ ["--mc" as string]: projectColor(t.project), textDecoration: "none", color: "inherit" }}>
                     <div className="r"><span className="mtag" style={{ ["--mc" as string]: projectColor(t.project) }}>{t.project}</span><StatusChip status={t.status} /></div>
                     <div className="t">{t.title}</div>
                     <div className="r"><span>{t.due && <span style={{ color: t.due < T ? "var(--bad)" : undefined }}>Due {fmtDay(t.due)}</span>}{sharedWith(t.others)}</span>{shareBtn("task", t.id, t.title, t.others)}</div>

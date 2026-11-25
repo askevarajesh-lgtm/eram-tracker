@@ -42,6 +42,12 @@ export async function deleteCompany(id: string): Promise<ActionResult> {
   if (!canManage(viewer)) return fail("Only admins and managers can delete companies.");
   await db.$transaction(async tx => {
     const c = await tx.company.delete({ where: { id } }); // tasks, users & access and licences keep working without it
+    const remaining = await tx.company.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, sortOrder: true } });
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i].sortOrder !== i) {
+        await tx.company.update({ where: { id: remaining[i].id }, data: { sortOrder: i } });
+      }
+    }
     await audit(tx, viewer, "delete", "company", id, c.name);
   });
   revalidatePath("/", "layout");

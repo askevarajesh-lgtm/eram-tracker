@@ -1,5 +1,6 @@
 export * from "./AntdConfigProvider";
 export * from "./AntDatePicker";
+export * from "./AntTimePicker";
 export * from "./AntSelect";
 export * from "./AntInput";
 export * from "./AntControls";

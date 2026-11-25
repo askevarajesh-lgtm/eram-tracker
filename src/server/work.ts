@@ -12,6 +12,7 @@ import { fail, type ActionResult } from "@/lib/action";
 import { toDay, today } from "@/lib/dates";
 import { SIZE_HOURS, filesOf, type FileRef } from "@/lib/work";
 import { LIST_DEFAULTS, TEMPLATE_DEFAULTS } from "@/lib/settings-defaults";
+import { resequenceProjectTasks } from "@/lib/sno";
 
 const done = () => revalidatePath("/", "layout");
 type Tx = Prisma.TransactionClient;
@@ -181,7 +182,12 @@ export async function deleteTasksWhere(by: "source" | "project", value: string, 
   if (confirm !== "DELETE") return fail("Type DELETE to confirm.");
   const where: Prisma.TaskWhereInput = by === "source" ? { source: value } : { projectId: value };
   const count = await db.$transaction(async tx => {
+    const tasks = await tx.task.findMany({ where, select: { projectId: true } });
+    const affectedProjects = [...new Set(tasks.map(t => t.projectId))];
     const n = (await tx.task.deleteMany({ where })).count;
+    for (const projId of affectedProjects) {
+      await resequenceProjectTasks(tx, projId);
+    }
     await audit(tx, viewer, "delete", "task", "", `Bulk delete ${by} "${value}": ${n} items`);
     return n;
   });

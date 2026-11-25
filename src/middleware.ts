@@ -12,6 +12,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // everything except the sign-in page, Next internals and static files
-  matcher: ["/((?!login|_next/static|_next/image|favicon.ico|api/health).*)"],
+  // everything except the sign-in page, Next internals, static files, and public/cron APIs
+  matcher: ["/((?!login|_next/static|_next/image|favicon.ico|api/health|api/cron).*)"],
 };

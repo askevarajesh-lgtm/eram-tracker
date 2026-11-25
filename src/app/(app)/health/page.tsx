@@ -39,7 +39,7 @@ export default async function HealthPage() {
     tc("noest", "Open items without an estimate", O.filter(t => t.estHours == null && !t.size), "size"),
     tc("nodate", "Completed items without a completed date", tasks.filter(t => t.status === "done" && !t.completedDate), "completed"),
     { key: "devc", label: "Developers without email or WhatsApp", kind: "other", field: null, items: developers.filter(d => !d.email && !d.whatsapp).map(d => ({ id: d.id, title: d.name, href: "/admin-panel?tab=notify", hint: "add contacts in Admin panel → Notifications" })) },
-    { key: "lic", label: "Licences without a renewal date", kind: "other", field: null, items: licences.filter(l => !l.renewal).map(l => ({ id: l.id, title: `${l.software} ${l.type}`, href: `/licences?edit=${l.id}`, hint: "click to edit" })) },
+    { key: "lic", label: "Licences without a renewal date", kind: "other", field: null, items: licences.filter(l => !l.renewal).map(l => ({ id: l.id, title: `${l.software} ${l.type}`, href: `/licences?view=${l.id}`, hint: "click to edit" })) },
     { key: "proj", label: "Projects without milestones", kind: "other", field: null, items: projects.filter(p => !milestones.some(m => m.projectId === p.id)).map(p => ({ id: p.id, title: p.name, href: "/plan?tab=milestones&new=1", hint: "add in Plan & control → Milestones" })) },
   ];
   return <HealthView checks={checks} developers={developers.map(d => ({ id: d.id, name: d.name }))} modules={lists.funcModules} canManage={canManage(viewer)} />;

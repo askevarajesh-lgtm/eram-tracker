@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { requireViewer, type Viewer } from "@/lib/session";
 import { canManage } from "@/lib/permissions";
 import { fail, type ActionResult } from "@/lib/action";
-import { lockSno } from "@/lib/sno";
+import { lockSno, resequenceProjectTasks } from "@/lib/sno";
 import { toDay, today } from "@/lib/dates";
 import { isBusinessUser } from "@/lib/licensing";
 import { norm } from "@/lib/excel/normalize";
@@ -177,6 +177,10 @@ async function apply(tx: Tx, viewer: Viewer, p: ReturnType<typeof importPayload.
         result.tasks.create++;
         if (result.taskChanges.length < 500) result.taskChanges.push({ index, kind: "create" });
       }
+    }
+    const touchedProjects = [...new Set(p.tasks.map(r => r.project ? projIdx.get(norm(r.project)) ?? "" : fallbackProjId))];
+    for (const projId of touchedProjects) {
+      if (projId) await resequenceProjectTasks(tx, projId);
     }
   }
 

@@ -55,7 +55,7 @@ export function DeliveredView({ groups, tasks }: Props) {
       key: "title",
       render: (title: string, t) => (
         <div>
-          <Link href={`/tasks?edit=${t.id}`} style={{ color: "inherit", fontWeight: 500 }}>
+          <Link href={`/tasks?view=${t.id}`} style={{ color: "inherit", fontWeight: 500 }}>
             {title}
           </Link>
           {t.version && <> <span className="mono muted">{t.version}</span></>}

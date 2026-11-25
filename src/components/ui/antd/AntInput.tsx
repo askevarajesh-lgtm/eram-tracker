@@ -3,6 +3,8 @@ import React from "react";
 import { Input, InputNumber } from "antd";
 import type { InputProps, TextAreaProps } from "antd/es/input";
 import type { InputNumberProps } from "antd/es/input-number";
+import { AntDatePicker } from "./AntDatePicker";
+import { AntTimePicker } from "./AntTimePicker";
 
 export type AntInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "prefix"> &
   Omit<InputProps, "size" | "prefix"> & {
@@ -12,10 +14,16 @@ export type AntInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "s
   };
 
 export const AntInput = React.forwardRef<any, AntInputProps>((props, ref) => {
-  const { size, htmlSize: explicitHtmlSize, ...rest } = props;
+  const { size, htmlSize: explicitHtmlSize, type, ...rest } = props;
+  if (type === "date") {
+    return <AntDatePicker ref={ref} size={typeof size === "string" ? size : undefined} {...(rest as any)} />;
+  }
+  if (type === "time") {
+    return <AntTimePicker ref={ref} size={typeof size === "string" ? size : undefined} {...(rest as any)} />;
+  }
   const antdSize = typeof size === "string" ? size : undefined;
   const htmlSize = typeof size === "number" ? size : explicitHtmlSize;
-  return <Input ref={ref} size={antdSize} htmlSize={htmlSize} style={{ width: "100%", ...rest.style }} {...(rest as any)} />;
+  return <Input ref={ref} size={antdSize} htmlSize={htmlSize} type={type} style={{ width: "100%", ...rest.style }} {...(rest as any)} />;
 });
 AntInput.displayName = "AntInput";
 

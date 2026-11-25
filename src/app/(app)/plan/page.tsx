@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Plan & control" };
 const TABS = ["milestones", "changes", "releases", "risks"] as const;
 type Tab = (typeof TABS)[number];
 
-export default async function PlanPage({ searchParams }: { searchParams: Promise<{ tab?: string; edit?: string; new?: string }> }) {
+export default async function PlanPage({ searchParams }: { searchParams: Promise<{ tab?: string; edit?: string; view?: string; new?: string }> }) {
   const viewer = await requireViewer();
   const sp = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(sp.tab ?? "") ? (sp.tab as Tab) : "milestones";
@@ -35,5 +35,5 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
       .sort((a, b) => Number(a.status === "Closed") - Number(b.status === "Closed") || ["High", "Medium", "Low"].indexOf(a.impact) - ["High", "Medium", "Low"].indexOf(b.impact)),
     doneTasks: doneTasks.map(t => ({ id: t.id, title: t.title, subModule: t.subModule, projectId: t.projectId ?? "" })),
   };
-  return <PlanView tab={tab} data={data} projects={projects} companies={companies} canManage={canManage(viewer)} canEdit={canEdit(viewer)} openId={sp.edit} openNew={sp.new === "1"} />;
+  return <PlanView tab={tab} data={data} projects={projects} companies={companies} canManage={canManage(viewer)} canEdit={canEdit(viewer)} openId={sp.view || sp.edit} openNew={sp.new === "1"} />;
 }

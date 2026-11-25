@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Key } from "lucide-react";
 import { AUDIENCES, daysUntil, type Audience } from "@/lib/licensing";
 import { fmtDay } from "@/lib/dates";
@@ -28,6 +28,7 @@ type Props = {
   software: string;
   openNew: boolean;
   openId?: string;
+  openViewId?: string;
   assignId?: string;
 };
 
@@ -43,9 +44,20 @@ function Renewal({ day }: { day: string }) {
   );
 }
 
-export function LicencesView({ pools, companies, projects, records, canManage, tab, software, openNew, openId, assignId }: Props) {
+export function LicencesView({ pools, companies, projects, records, canManage, tab, software, openNew, openId, openViewId, assignId }: Props) {
   const { update } = useUrlUpdate();
-  const [viewing, setViewing] = useState<LicencePool | null>(null);
+  const [viewing, setViewing] = useState<LicencePool | null>(() => {
+    return openViewId ? pools.find((p) => p.id === openViewId) ?? null : null;
+  });
+
+  useEffect(() => {
+    if (openViewId) {
+      setViewing(pools.find((p) => p.id === openViewId) ?? null);
+    } else {
+      setViewing(null);
+    }
+  }, [openViewId, pools]);
+
   const activeTab = tab === "list" ? "list" : "dashboard";
 
   const allSoftware = [...new Set(pools.map(p => p.software))];
@@ -53,7 +65,7 @@ export function LicencesView({ pools, companies, projects, records, canManage, t
 
   const editing = openNew ? "new" : openId ? pools.find(p => p.id === openId) ?? null : null;
   const assigning = assignId ? pools.find(p => p.id === assignId) ?? null : null;
-  const close = () => update({ new: null, edit: null, assign: null });
+  const close = () => update({ new: null, edit: null, assign: null, view: null });
   const addBtn = canManage && <button className="btn primary" type="button" onClick={() => update({ new: "1" })}>+ Add licence</button>;
 
   return (
@@ -226,8 +238,11 @@ export function LicencesView({ pools, companies, projects, records, canManage, t
                               </button>
                             )}
                             <RecordActions
-                              onView={() => setViewing(p)}
-                              onEdit={canManage ? () => update({ edit: p.id }) : undefined}
+                              onView={() => {
+                                setViewing(p);
+                                update({ view: p.id, edit: null, assign: null });
+                              }}
+                              onEdit={canManage ? () => update({ edit: p.id, view: null }) : undefined}
                               onDelete={
                                 canManage
                                   ? async () => {
@@ -260,7 +275,10 @@ export function LicencesView({ pools, companies, projects, records, canManage, t
                           dataSource={list}
                           columns={poolColumns}
                           rowKey="id"
-                          onRowClick={p => setViewing(p)}
+                          onRowClick={p => {
+                            setViewing(p);
+                            update({ view: p.id, edit: null, assign: null });
+                          }}
                           pagination={false}
                           emptyTitle="No licences in this pool"
                           emptyDescription="Add licences to this category using the button above."
@@ -283,14 +301,17 @@ export function LicencesView({ pools, companies, projects, records, canManage, t
           onEdit={() => {
             const id = viewing.id;
             setViewing(null);
-            update({ edit: id });
+            update({ edit: id, view: null });
           }}
           onAssign={() => {
             const id = viewing.id;
             setViewing(null);
-            update({ assign: id });
+            update({ assign: id, view: null });
           }}
-          onClose={() => setViewing(null)}
+          onClose={() => {
+            setViewing(null);
+            update({ view: null });
+          }}
         />
       )}
 

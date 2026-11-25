@@ -13,7 +13,7 @@ import type { TaskDTO } from "./types";
 import type { DevLoadLite } from "@/server/extras";
 import { TaskExtrasView } from "./TaskExtrasView";
 import { SharePanel } from "@/components/shared/collaboration/SharePanel";
-import { AntInput, AntTextArea, AntSelect, AntDatePicker, AntSlider, AntCheckbox } from "@/components/ui/antd";
+import { AntInput, AntTextArea, AntSelect, AntDatePicker, AntTimePicker, AntSlider, AntCheckbox } from "@/components/ui/antd";
 
 const SIZES: [string, string][] = [["", "—"], ["S", "S · about 4 h"], ["M", "M · about 2 days"], ["L", "L · about 1 week"], ["XL", "XL · 2 weeks+"]];
 
@@ -90,6 +90,14 @@ export function TaskForm({ task, lookups, defaultProjectId, defaultStatus, canEd
         <div className={"field" + (full ? " full" : "")}>
           <label htmlFor={"t_" + k}>{label}</label>
           <AntDatePicker id={"t_" + k} value={f[k] as string} onChange={e => set(k, e.target.value as never)} disabled={!canEdit} />
+        </div>
+      );
+    }
+    if (props.type === "time") {
+      return (
+        <div className={"field" + (full ? " full" : "")}>
+          <label htmlFor={"t_" + k}>{label}</label>
+          <AntTimePicker id={"t_" + k} value={f[k] as string} onChange={e => set(k, e.target.value as never)} disabled={!canEdit} />
         </div>
       );
     }

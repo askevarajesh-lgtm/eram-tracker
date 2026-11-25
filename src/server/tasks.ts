@@ -7,7 +7,7 @@ import { requireViewer } from "@/lib/session";
 import { canManage, canWriteTask } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { fail, type ActionResult } from "@/lib/action";
-import { lockSno, nextSno } from "@/lib/sno";
+import { lockSno, nextSno, resequenceProjectTasks, resequenceAllProjects } from "@/lib/sno";
 import { toDay, today } from "@/lib/dates";
 
 const optDate = z
@@ -162,7 +162,16 @@ export async function saveTask(
         task.id,
         task.title,
       );
-      return task;
+      if (movedProject && existing.projectId) {
+        await resequenceProjectTasks(tx, existing.projectId);
+      }
+      await resequenceProjectTasks(tx, projectId);
+      const refreshed = await tx.task.findUnique({
+        where: { id: task.id },
+        select: { id: true, sno: true },
+      });
+
+      return refreshed ?? task;
     });
     revalidatePath("/", "layout");
     return { ok: true, data: { id: saved.id, sno: saved.sno } };
@@ -263,18 +272,20 @@ export async function deleteTask(id: string): Promise<ActionResult> {
   if (!t) return { ok: true };
   if (!canManage(viewer))
     return fail("Only admins and project managers can delete tasks.");
-  await db.$transaction([
-    db.task.delete({ where: { id } }),
-    db.auditEntry.create({
+  await db.$transaction(async (tx) => {
+    await lockSno(tx);
+    await tx.task.delete({ where: { id } });
+    await resequenceProjectTasks(tx, t.projectId);
+    await tx.auditEntry.create({
       data: {
         accountId: viewer.id,
         action: "delete",
         entity: "task",
         entityId: id,
-        label: t.title,
+        label: `${t.title} (S.No #${t.sno})`,
       },
-    }),
-  ]);
+    });
+  });
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -296,27 +307,13 @@ export async function renumberTasks(
           data: { projectId: defaultProj.id },
         });
       }
-      const rows = await tx.task.findMany({
-        where: projectId === undefined ? {} : { projectId },
-        select: { id: true, projectId: true, sno: true },
-        orderBy: [
-          { projectId: "asc" },
-          { sno: "asc" },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
-      });
-      const counters = new Map<string, number>();
       let changed = 0;
-      for (const r of rows) {
-        const k = r.projectId ?? "";
-        const n = (counters.get(k) ?? 0) + 1;
-        counters.set(k, n);
-        if (r.sno !== n) {
-          await tx.task.update({ where: { id: r.id }, data: { sno: n } });
-          changed++;
-        }
+      if (projectId !== undefined) {
+        changed = await resequenceProjectTasks(tx, projectId);
+      } else {
+        changed = await resequenceAllProjects(tx);
       }
+      const total = await tx.task.count(projectId ? { where: { projectId } } : undefined);
       await audit(
         tx,
         viewer,
@@ -325,7 +322,7 @@ export async function renumberTasks(
         "",
         `Renumbered task S.No: ${changed} changed`,
       );
-      return { changed, total: rows.length };
+      return { changed, total };
     },
     { timeout: 60_000 },
   );

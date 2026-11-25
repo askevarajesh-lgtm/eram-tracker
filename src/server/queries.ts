@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import type { Prisma, TaskStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getLists } from "@/lib/settings";
+import { resequenceAllProjects } from "@/lib/sno";
 
 // Read helpers used by server components. Writes live in the "use server" action files.
 
@@ -25,7 +26,7 @@ export async function listTasks(f: TaskFilters) {
       ...(Number.isInteger(n) && n > 0 ? [{ sno: n }] : []),
     ];
   }
-  return db.task.findMany({
+  const tasks = await db.task.findMany({
     where,
     include: {
       project: { select: { id: true, name: true, code: true } },
@@ -34,6 +35,37 @@ export async function listTasks(f: TaskFilters) {
     },
     orderBy: [{ project: { sortOrder: "asc" } }, { sno: "asc" }],
   });
+
+  // Auto-heal: if any project's tasks have sequence gaps, re-sequence them 1..N and return fresh
+  if (!f.q && !f.status && !f.dev && !f.priority && tasks.length > 0) {
+    const projCounters = new Map<string, number>();
+    let hasGap = false;
+    for (const t of tasks) {
+      const k = t.projectId ?? "";
+      const expected = (projCounters.get(k) ?? 0) + 1;
+      projCounters.set(k, expected);
+      if (t.sno !== expected) {
+        hasGap = true;
+        break;
+      }
+    }
+    if (hasGap) {
+      await db.$transaction(async (tx) => {
+        await resequenceAllProjects(tx);
+      });
+      return db.task.findMany({
+        where,
+        include: {
+          project: { select: { id: true, name: true, code: true } },
+          company: { select: { id: true, name: true, code: true } },
+          assignees: { orderBy: { position: "asc" }, select: { developer: { select: { id: true, name: true } } } },
+        },
+        orderBy: [{ project: { sortOrder: "asc" } }, { sno: "asc" }],
+      });
+    }
+  }
+
+  return tasks;
 }
 export type TaskRow = Awaited<ReturnType<typeof listTasks>>[number];
 

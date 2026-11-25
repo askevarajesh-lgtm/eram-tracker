@@ -9,7 +9,7 @@ import { AdminPanelView } from "./_components/AdminPanelView";
 
 export const metadata: Metadata = { title: "Admin panel" };
 
-const TABS = ["notify", "lists", "log", "data"] as const;
+const TABS = ["notify", "cron", "lists", "log", "data"] as const;
 
 export default async function AdminPanelPage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string; area?: string }> }) {
   const viewer = await requireViewer();
@@ -18,6 +18,24 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
   const tab = (TABS as readonly string[]).includes(sp.tab ?? "") ? (sp.tab as (typeof TABS)[number]) : "notify";
 
   const [notify, lists, developers] = await Promise.all([getNotifySettings(), getLists(), db.developer.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, email: true, whatsapp: true } })]);
+
+  let cronLogs: any[] = [];
+  if (tab === "cron") {
+    const rows = await db.cronJobLog.findMany({
+      orderBy: { startedAt: "desc" },
+      take: 50,
+    });
+    cronLogs = rows.map(r => ({
+      id: r.id,
+      jobName: r.jobName,
+      status: r.status,
+      processed: r.processed,
+      startedAt: r.startedAt.toISOString(),
+      finishedAt: r.finishedAt?.toISOString() ?? "",
+      details: r.details,
+      error: r.error,
+    }));
+  }
 
   let log: { at: string; who: string; action: string; entity: string; label: string }[] = [];
   let areas: string[] = [];
@@ -46,5 +64,5 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
     };
   }
 
-  return <AdminPanelView tab={tab} notify={notify} lists={lists} developers={developers} log={log} areas={areas} data={data} />;
+  return <AdminPanelView tab={tab} notify={notify} lists={lists} developers={developers} log={log} areas={areas} data={data} cronLogs={cronLogs} />;
 }

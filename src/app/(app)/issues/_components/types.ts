@@ -15,6 +15,7 @@ export type IssueDTO = {
   resolution: string;
   createdAt: string;
   resolvedAt: string;
+  taskId: string | null;
   taskSno: number | null;
   approvalState: "pending" | "approved" | "rejected" | null;
   approvalBy: string;

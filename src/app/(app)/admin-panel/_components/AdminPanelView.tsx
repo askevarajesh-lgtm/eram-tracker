@@ -11,13 +11,14 @@ import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
 import { UrlFilters } from "@/components/ui/UrlFilters";
 import { useCompose } from "@/components/shared/compose/Compose";
-import { AntInput, AntTextArea, AntCheckbox, AntTable, type ColumnsType } from "@/components/ui/antd";
+import { AntInput, AntTextArea, AntCheckbox, AntTable, AntTimePicker, type ColumnsType } from "@/components/ui/antd";
 
 type Props = {
-  tab: "notify" | "lists" | "log" | "data";
+  tab: "notify" | "cron" | "lists" | "log" | "data";
   notify: NotifySettings; lists: Lists; developers: { id: string; name: string; email: string; whatsapp: string }[];
   log: { at: string; who: string; action: string; entity: string; label: string }[]; areas: string[];
   data: { counts: [string, number][]; sources: [string, number][]; projects: { id: string; name: string; n: number }[] } | null;
+  cronLogs?: { id: string; jobName: string; status: string; processed: number; startedAt: string; finishedAt: string; details: any; error: string | null }[];
 };
 
 const input: React.CSSProperties = { width: "100%", font: "13px var(--body)", padding: "7px 9px", border: "1px solid var(--line2)", borderRadius: 8, background: "var(--surface)", color: "var(--fg)" };
@@ -155,7 +156,7 @@ function NotifyTab({ notify, developers }: Props) {
                 Remind about missing daily updates
               </AntCheckbox>
             </label>
-            <div className="field"><label htmlFor="nc_dt">Daily update due by</label><AntInput id="nc_dt" type="time" value={f.dailyTime} onChange={e => set("dailyTime", e.target.value)} /></div>
+            <div className="field"><label htmlFor="nc_dt">Daily update due by</label><AntTimePicker id="nc_dt" value={f.dailyTime} onChange={e => set("dailyTime", e.target.value)} /></div>
             <div className="field full"><label>Working days</label>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {WEEKDAYS.map((w, i) => (

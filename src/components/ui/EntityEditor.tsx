@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { Panel } from "./Panel";
 import { toast } from "./Toaster";
 import { confirmAction } from "./ConfirmCloseModal";
-import { AntInput, AntTextArea, AntSelect, AntDatePicker } from "@/components/ui/antd";
+import { AntInput, AntTextArea, AntSelect, AntDatePicker, AntTimePicker } from "@/components/ui/antd";
 
 export type FieldDef<F> = {
   key: keyof F & string;
@@ -98,6 +98,13 @@ export function EntityEditor<F extends Record<string, string>>({ title, initial,
               />
             ) : d.type === "date" ? (
               <AntDatePicker
+                id={"e_" + d.key}
+                value={f[d.key]}
+                placeholder={d.placeholder}
+                onChange={e => setF({ ...f, [d.key]: e.target.value })}
+              />
+            ) : d.type === "time" ? (
+              <AntTimePicker
                 id={"e_" + d.key}
                 value={f[d.key]}
                 placeholder={d.placeholder}

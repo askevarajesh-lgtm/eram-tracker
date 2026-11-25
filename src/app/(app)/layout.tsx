@@ -11,7 +11,7 @@ import pkg from "../../../package.json";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
   const startOfDay = new Date(new Date().toISOString().slice(0, 10));
-  const [tasks, delivered, developers, users, licences, projects, openIssues, uat, projectList, apIssues, apTasks, apChanges, meetingsToday, manuals] = await Promise.all([
+  const [tasks, delivered, developers, users, licences, projects, openIssues, uat, projectList, apIssues, apTasks, apChanges, meetingsToday, manuals, unreadNotifs] = await Promise.all([
     db.task.count(),
     db.task.count({ where: { status: "done" } }),
     db.developer.count(),
@@ -26,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     db.changeRequest.count({ where: { status: { in: ["Submitted", "Under review"] } } }),
     db.meeting.count({ where: { date: startOfDay, status: "Planned" } }),
     db.manual.count(),
+    db.notification.count({ where: { accountId: viewer.id, read: false } }),
   ]);
   const counts = {
     tasks, delivered, developers, users, licences: licences._sum.quantity ?? 0, modules: projects, issues: openIssues, uat,
@@ -37,7 +38,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Sidebar counts={counts} role={viewer.role} version={pkg.version} />
         <div className="maincol">
           <Header canEdit={canEdit(viewer)} canImport={canManage(viewer)} projects={projectList} name={viewer.name} role={viewer.role}
-            alerts={{ issues: openIssues, approvals: canManage(viewer) ? counts.approvals : null, calendar: meetingsToday, uat }} />
+            alerts={{ issues: openIssues, approvals: canManage(viewer) ? counts.approvals : null, calendar: meetingsToday, uat }}
+            initialUnreadCount={unreadNotifs} />
           <main className="content">
             <ModuleHeader />
             {children}

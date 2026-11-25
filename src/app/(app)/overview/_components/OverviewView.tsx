@@ -458,7 +458,7 @@ export function OverviewView({ todayStr, projects, tasks, developers }: Props) {
                 return (
                   <Link
                     key={t.id}
-                    href={`/tasks?edit=${t.id}`}
+                    href={`/tasks?view=${t.id}`}
                     className="aitem"
                     style={{ ["--c" as string]: c, textDecoration: "none", color: "inherit" }}
                   >

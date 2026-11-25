@@ -12,7 +12,7 @@ import type { AccessRow } from "./_components/types";
 
 export const metadata: Metadata = { title: "Users & access" };
 
-type Search = { q?: string; comp?: string; app?: string; dept?: string; new?: string; edit?: string };
+type Search = { q?: string; comp?: string; app?: string; dept?: string; new?: string; edit?: string; view?: string };
 
 // The "Users & access" register: people in the companies and the systems/licences allocated to them.
 // They are records only; they don't sign in to this app.
@@ -83,6 +83,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         canManage={manage}
         openNew={sp.new === "1"}
         openId={sp.edit}
+        openViewId={sp.view}
         defaultCompanyId={sp.comp && sp.comp !== "_none" ? sp.comp : ""}
       />
     </>

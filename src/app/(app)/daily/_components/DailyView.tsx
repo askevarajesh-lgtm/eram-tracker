@@ -13,7 +13,7 @@ import { Kpi } from "@/components/ui/Kpi";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
 import { useUrlUpdate } from "@/components/ui/useUrl";
-import { AntDatePicker, AntSelect, AntInput, AntTextArea, AntTable, type ColumnsType } from "@/components/ui/antd";
+import { AntDatePicker, AntTimePicker, AntSelect, AntInput, AntTextArea, AntTable, type ColumnsType } from "@/components/ui/antd";
 
 type Row = { id: string; ref: string; subModule: string; title: string; notes: string; owner: string; status: TaskStatus; priority: string; progress: number; due: string; doneOn: string; created: string };
 type Rollout = { companyId: string; projectId: string; status: string; progress: number | null; startDate: string; targetDate: string; actualDate: string; owner: string; branches: string; notes: string; log: { d: string; from: string; to: string }[] };
@@ -177,7 +177,7 @@ export function DailyView({ data, canEdit, canManage }: { data: DailyData; canEd
                 <AItem key={"r" + i} color={RO[r.to]?.color ?? "var(--muted)"} title={`${projName(r.projectId)} at ${compName(r.companyId)}`} sub={<>{RO[r.from]?.label ?? "—"} → {RO[r.to]?.label ?? r.to}{r.notes && ` · ${r.notes.slice(0, 80)}`}</>} />
               ))}
               {data.moved.map((m, i) => (
-                <AItem key={"m" + i} color={STATUS_MAP[m.to as TaskStatus]?.color ?? "var(--muted)"} href={`/tasks?edit=${m.id}`} title={m.title}
+                <AItem key={"m" + i} color={STATUS_MAP[m.to as TaskStatus]?.color ?? "var(--muted)"} href={`/tasks?view=${m.id}`} title={m.title}
                   sub={<>{m.from ? `${STATUS_MAP[m.from as TaskStatus]?.label ?? m.from} → ` : "Created as "}{STATUS_MAP[m.to as TaskStatus]?.label ?? m.to} · {m.owner || "Unassigned"}</>}
                   right={m.subModule ? <span className="muted" style={{ fontSize: 12 }}>{m.subModule}</span> : undefined} />
               ))}
@@ -269,7 +269,7 @@ function ItemTable({ title, rows, D, extra }: { title: string; rows: Row[]; D: s
       key: "title",
       render: (t: string, r: Row) => (
         <>
-          <Link href={`/tasks?edit=${r.id}`} style={{ color: "inherit", fontWeight: 500 }}>{t}</Link>
+          <Link href={`/tasks?view=${r.id}`} style={{ color: "inherit", fontWeight: 500 }}>{t}</Link>
           {r.notes && <div className="muted" style={{ fontSize: 12 }}>{r.notes.slice(0, 140)}</div>}
         </>
       ),
@@ -351,6 +351,8 @@ function RolloutPanel({ companyId, projectId, data, onClose }: { companyId: stri
       <label htmlFor={"ro_" + k}>{label}</label>
       {type === "date" ? (
         <AntDatePicker id={"ro_" + k} value={f[k]} onChange={e => set(k, e.target.value)} />
+      ) : type === "time" ? (
+        <AntTimePicker id={"ro_" + k} value={f[k]} onChange={e => set(k, e.target.value)} />
       ) : (
         <AntInput id={"ro_" + k} type={type} value={f[k]} onChange={e => set(k, e.target.value)} />
       )}

@@ -6,7 +6,7 @@ import { deleteLicence, saveLicence } from "@/server/licences";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
 import { confirmAction } from "@/components/ui/ConfirmCloseModal";
-import { AntInput, AntTextArea, AntSelect, AntDatePicker } from "@/components/ui/antd";
+import { AntInput, AntTextArea, AntSelect, AntDatePicker, AntTimePicker } from "@/components/ui/antd";
 
 type Props = {
   pool: LicencePool | null;
@@ -78,6 +78,14 @@ export function LicenceForm({ pool, companies, projects, softwareList, defaultSo
         <div className={"field" + (full ? " full" : "")}>
           <label htmlFor={"l_" + k}>{label}</label>
           <AntDatePicker id={"l_" + k} value={f[k]} onChange={e => set(k, e.target.value as never)} />
+        </div>
+      );
+    }
+    if (props.type === "time") {
+      return (
+        <div className={"field" + (full ? " full" : "")}>
+          <label htmlFor={"l_" + k}>{label}</label>
+          <AntTimePicker id={"l_" + k} value={f[k]} onChange={e => set(k, e.target.value as never)} />
         </div>
       );
     }

@@ -1,186 +1,1578 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
-import { AntTable, type ColumnsType } from "@/components/ui/antd";
+import { useEffect, useState, useTransition, useMemo } from "react";
 import { deleteReminder, reminderDone, saveReminder } from "@/server/calendar";
 import type { AutoData, ReminderDTO } from "@/server/reminders-data";
 import { fmtDay, today } from "@/lib/dates";
-import { TEMPLATE_DEFAULTS, WEEKDAYS, type TemplateKey } from "@/lib/settings-defaults";
-import { AItem } from "@/components/ui/bits";
+import { TEMPLATE_DEFAULTS, type TemplateKey } from "@/lib/settings-defaults";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
 import { useUrlUpdate } from "@/components/ui/useUrl";
 import { useCompose } from "@/components/shared/compose/Compose";
-import { AntInput, AntTextArea, AntSelect, AntDatePicker, AntCheckbox } from "@/components/ui/antd";
+import { AntInput, AntTextArea, AntSelect, AntDatePicker, AntTimePicker, AntCheckbox } from "@/components/ui/antd";
 import { autoReminders, isDue, type AutoReminder } from "@/lib/reminders";
 export { autoReminders, isDue, type AutoReminder } from "@/lib/reminders";
+import { ReminderDetailModal } from "./ReminderDetailModal";
+import {
+  Bell,
+  Clock,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  RefreshCw,
+  Plus,
+  Send,
+  Eye,
+  Edit3,
+  ExternalLink,
+  Search,
+  User,
+  Sparkles,
+  Check,
+  Flag,
+  Key,
+  Folder,
+  Layers,
+  CheckSquare,
+  Rocket,
+  RotateCcw,
+  X,
+  Radio,
+  SlidersHorizontal,
+  ChevronRight,
+  Inbox,
+} from "lucide-react";
 
-const REPEAT: Record<string, string> = { none: "Once", daily: "Daily", weekdays: "Working days", weekly: "Weekly" };
-
-type Props = {
-  reminders: ReminderDTO[]; auto: AutoData; developers: { id: string; name: string }[]; tasks: { id: string; label: string }[];
-  canEdit: boolean; canManage: boolean; openId?: string; openNew: boolean;
+const REPEAT: Record<string, string> = {
+  none: "Once",
+  daily: "Daily",
+  weekdays: "Working days",
+  weekly: "Weekly",
 };
 
-export function RemindersView({ reminders, auto, developers, tasks, canEdit, canManage, openId, openNew }: Props) {
+type SourceConfig = {
+  label: string;
+  color: string;
+  bg: string;
+  icon: typeof Bell;
+};
+
+const SOURCE_CONFIG: Record<string, SourceConfig> = {
+  milestone: { label: "Milestone", color: "#d97706", bg: "rgba(217, 119, 6, 0.12)", icon: Flag },
+  task: { label: "Task", color: "#059669", bg: "rgba(5, 150, 105, 0.12)", icon: CheckSquare },
+  meeting: { label: "Meeting", color: "#2563eb", bg: "rgba(37, 99, 235, 0.12)", icon: Calendar },
+  licence: { label: "Licence", color: "#dc2626", bg: "rgba(220, 38, 38, 0.12)", icon: Key },
+  rollout: { label: "Rollout", color: "#7c3aed", bg: "rgba(124, 58, 237, 0.12)", icon: Rocket },
+  standup: { label: "Standup", color: "#ea580c", bg: "rgba(234, 88, 12, 0.12)", icon: Layers },
+  issue: { label: "Issue", color: "#e11d48", bg: "rgba(225, 29, 72, 0.12)", icon: AlertCircle },
+  manual: { label: "Manual", color: "#4b5563", bg: "rgba(75, 85, 99, 0.12)", icon: Bell },
+};
+
+type Props = {
+  reminders: ReminderDTO[];
+  auto: AutoData;
+  developers: { id: string; name: string }[];
+  tasks: { id: string; label: string }[];
+  canEdit: boolean;
+  canManage: boolean;
+  openId?: string;
+  openViewId?: string;
+  openNew: boolean;
+};
+
+export function RemindersView({ reminders, auto, developers, tasks, canEdit, canManage, openId, openViewId, openNew }: Props) {
   const { update } = useUrlUpdate();
   const compose = useCompose();
   const [, start] = useTransition();
+
+  const [viewingReminder, setViewingReminder] = useState<ReminderDTO | null>(() => {
+    return openViewId ? reminders.find((r) => r.id === openViewId) ?? null : null;
+  });
+
+  useEffect(() => {
+    if (openViewId) {
+      setViewingReminder(reminders.find((r) => r.id === openViewId) ?? null);
+    } else {
+      setViewingReminder(null);
+    }
+  }, [openViewId, reminders]);
+
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"due" | "up" | "done" | "all">("due");
+  const [search, setSearch] = useState("");
+  const [syncing, setSyncing] = useState(false);
+
   // due-ness depends on the clock: render after mount and refresh every minute
   const [tick, setTick] = useState(0);
-  useEffect(() => { setTick(1); const t = setInterval(() => setTick(x => x + 1), 60_000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    setTick(1);
+    const t = setInterval(() => setTick(x => x + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
   const A = tick ? autoReminders(auto) : [];
-  const due = tick ? reminders.filter(isDue) : [];
-  const up = reminders.filter(r => !r.done && !due.includes(r));
-  const dn = reminders.filter(r => r.done).slice(-20).reverse();
+
+  // Filter by selected module source
+  const sourceFiltered = useMemo(() => {
+    if (sourceFilter === "all") return reminders;
+    return reminders.filter(r => (r.sourceType || "manual") === sourceFilter);
+  }, [reminders, sourceFilter]);
+
+  const due = useMemo(() => (tick ? sourceFiltered.filter(isDue) : []), [tick, sourceFiltered]);
+  const up = useMemo(() => sourceFiltered.filter(r => !r.done && !due.includes(r)), [sourceFiltered, due]);
+  const dn = useMemo(() => sourceFiltered.filter(r => r.done).slice(-30).reverse(), [sourceFiltered]);
+
+  // Overall metric counts across all reminders
+  const allDue = useMemo(() => (tick ? reminders.filter(isDue) : []), [tick, reminders]);
+  const allUp = useMemo(() => reminders.filter(r => !r.done && !allDue.includes(r)), [reminders, allDue]);
+  const allDn = useMemo(() => reminders.filter(r => r.done), [reminders]);
+  const allAuto = useMemo(() => reminders.filter(r => r.autoGenerated), [reminders]);
+
   const devName = (id: string) => developers.find(d => d.id === id)?.name;
   const editing = openNew ? null : openId ? reminders.find(r => r.id === openId) ?? null : undefined;
 
+  const triggerSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/cron?job=all");
+      const d = await res.json();
+      if (d.ok) {
+        toast(`Synced across modules (${d.totalProcessed || 0} checked)`);
+        window.location.reload();
+      } else {
+        toast(`Sync completed with status: ${d.job}`);
+      }
+    } catch {
+      toast("Sync completed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const send = (r: ReminderDTO) => {
     const custom = !r.template || r.template === "custom";
-    compose({ tpl: (r.template as TemplateKey) || "custom", devIds: r.developerIds, ...(custom ? { subject: "Reminder: " + r.title, body: `Hi {name},\n\nReminder: ${r.title}${r.note ? "\n" + r.note : ""}\n\n{link}` } : {}), item: r.taskTitle ? { title: r.taskTitle, project: "", due: "" } : undefined });
+    compose({
+      tpl: (r.template as TemplateKey) || "custom",
+      devIds: r.developerIds,
+      ...(custom ? { subject: "Reminder: " + r.title, body: `Hi {name},\n\nReminder: ${r.title}${r.note ? "\n" + r.note : ""}\n\n{link}` } : {}),
+      item: r.taskTitle ? { title: r.taskTitle, project: "", due: "" } : undefined,
+    });
   };
-  const mark = (r: ReminderDTO, snooze: boolean) => start(async () => { const x = await reminderDone(r.id, snooze); toast(x.ok ? (snooze ? "Moved to tomorrow" : "Done") : x.error); });
 
-  const table = (title: string, L: ReminderDTO[], mode: "due" | "up" | "done") => {
-    const columns: ColumnsType<ReminderDTO> = [
-      {
-        title: "Reminder",
-        dataIndex: "title",
-        key: "title",
-        render: (t: string, r: ReminderDTO) => (
-          <div>
-            <b style={{ fontWeight: 600 }}>{t}</b>
-            {r.note && <div className="muted" style={{ fontSize: 12 }}>{r.note}</div>}
-          </div>
-        ),
-      },
-      {
-        title: "When",
-        key: "when",
-        className: "mono",
-        render: (_: unknown, r: ReminderDTO) => (
-          <span style={{ whiteSpace: "nowrap", ...(mode === "due" ? { color: "var(--bad)", fontWeight: 700 } : {}) }}>
-            {fmtDay(r.date)} {r.time}
-          </span>
-        ),
-      },
-      {
-        title: "Repeat",
-        dataIndex: "repeat",
-        key: "repeat",
-        render: (repeat: string) => REPEAT[repeat] ?? "Once",
-      },
-      {
-        title: "For",
-        key: "for",
-        render: (_: unknown, r: ReminderDTO) => r.developerIds.map(devName).filter(Boolean).join(", ") || "—",
-      },
-      {
-        title: "Item",
-        key: "item",
-        render: (_: unknown, r: ReminderDTO) => (r.taskId ? <Link href={`/tasks?edit=${r.taskId}`}>{r.taskTitle}</Link> : "—"),
-      },
-      {
-        title: "",
-        key: "action",
-        align: "right",
-        render: (_: unknown, r: ReminderDTO) => (
-          <div style={{ whiteSpace: "nowrap" }}>
-            {mode !== "done" && canEdit && (
-              <>
-                <button className="btn" type="button" onClick={() => send(r)}>Send</button>{" "}
-                <button className="btn" type="button" onClick={() => mark(r, true)}>+1 day</button>{" "}
-                <button className="btn" type="button" onClick={() => mark(r, false)}>
-                  {r.repeat !== "none" ? "Done · next" : "Done"}
-                </button>{" "}
-              </>
-            )}
-            {canEdit && <button className="btn" type="button" onClick={() => update({ edit: r.id })}>Edit</button>}
-          </div>
-        ),
-      },
-    ];
+  const mark = (r: ReminderDTO, snooze: boolean) =>
+    start(async () => {
+      const x = await reminderDone(r.id, snooze);
+      toast(x.ok ? (snooze ? "Moved to tomorrow" : "Done") : x.error);
+    });
 
-    return (
-      <>
-        <h2 className="sec">{title} <span className="mono muted" style={{ fontSize: 13 }}>{L.length}</span></h2>
-        <AntTable<ReminderDTO>
-          dataSource={L}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-          emptyTitle="No reminders"
-          emptyDescription={mode === "due" ? "No overdue reminders." : mode === "up" ? "No upcoming reminders scheduled." : "No completed reminders."}
-        />
-      </>
-    );
+  const getItemLink = (r: ReminderDTO) => {
+    if (r.taskId || r.sourceType === "task") {
+      return (
+        <Link
+          href={`/tasks?view=${r.taskId || r.sourceId}`}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}
+        >
+          <ExternalLink size={12} />
+          <span>{r.taskTitle || "View Task"}</span>
+        </Link>
+      );
+    }
+    if (r.sourceType === "meeting" && r.sourceId) {
+      return (
+        <Link
+          href={`/calendar?view=${r.sourceId}`}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}
+        >
+          <ExternalLink size={12} />
+          <span>View Meeting</span>
+        </Link>
+      );
+    }
+    if (r.sourceType === "milestone" && r.sourceId) {
+      return (
+        <Link
+          href={`/plan?tab=milestones&view=${r.sourceId}`}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}
+        >
+          <ExternalLink size={12} />
+          <span>View Milestone</span>
+        </Link>
+      );
+    }
+    if (r.sourceType === "licence" && r.sourceId) {
+      return (
+        <Link
+          href={`/licences?view=${r.sourceId}`}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}
+        >
+          <ExternalLink size={12} />
+          <span>View Licence</span>
+        </Link>
+      );
+    }
+    if (r.sourceType === "rollout") {
+      return (
+        <Link
+          href={`/overview`}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}
+        >
+          <ExternalLink size={12} />
+          <span>View Rollout</span>
+        </Link>
+      );
+    }
+    if (r.sourceType === "standup") {
+      return (
+        <Link
+          href={`/daily`}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}
+        >
+          <ExternalLink size={12} />
+          <span>HCM Board</span>
+        </Link>
+      );
+    }
+    return null;
   };
+
+  const getDueStatus = (dateStr: string, timeStr: string, isDone: boolean) => {
+    if (isDone) {
+      return {
+        status: "done" as const,
+        label: "Completed",
+        badgeColor: "var(--ok)",
+        badgeBg: "rgba(21, 146, 74, 0.12)",
+        stripeColor: "var(--ok)",
+      };
+    }
+    const t = today();
+    if (dateStr < t) {
+      const diffDays = Math.max(1, Math.round((new Date(t).getTime() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24)));
+      return {
+        status: "overdue" as const,
+        label: diffDays === 1 ? "1 day overdue" : `${diffDays} days overdue`,
+        badgeColor: "var(--bad)",
+        badgeBg: "rgba(211, 47, 47, 0.12)",
+        stripeColor: "var(--bad)",
+      };
+    }
+    if (dateStr === t) {
+      return {
+        status: "today" as const,
+        label: `Due today · ${timeStr || "09:00"}`,
+        badgeColor: "var(--warn)",
+        badgeBg: "rgba(199, 116, 8, 0.12)",
+        stripeColor: "var(--warn)",
+      };
+    }
+    return {
+      status: "upcoming" as const,
+      label: `${fmtDay(dateStr)} · ${timeStr || "09:00"}`,
+      badgeColor: "var(--info)",
+      badgeBg: "rgba(37, 99, 235, 0.12)",
+      stripeColor: "var(--line2)",
+    };
+  };
+
+  // Filtered displayed list based on active tab and search
+  const displayedList = useMemo(() => {
+    let list: ReminderDTO[] = [];
+    if (activeTab === "due") list = due;
+    else if (activeTab === "up") list = up;
+    else if (activeTab === "done") list = dn;
+    else list = sourceFiltered;
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(r => {
+        const matchTitle = r.title.toLowerCase().includes(q);
+        const matchNote = r.note?.toLowerCase().includes(q);
+        const matchItem = r.taskTitle?.toLowerCase().includes(q);
+        const matchProject = r.projectName?.toLowerCase().includes(q);
+        const matchDev = r.developerIds.some(id => devName(id)?.toLowerCase().includes(q));
+        return matchTitle || matchNote || matchItem || matchProject || matchDev;
+      });
+    }
+
+    return list;
+  }, [activeTab, due, up, dn, sourceFiltered, search]);
+
+  const sources = [
+    { id: "all", label: "All Sources", icon: Bell },
+    { id: "task", label: "Tasks", icon: CheckSquare },
+    { id: "meeting", label: "Meetings", icon: Calendar },
+    { id: "milestone", label: "Milestones", icon: Flag },
+    { id: "licence", label: "Licences", icon: Key },
+    { id: "rollout", label: "Rollouts", icon: Rocket },
+    { id: "standup", label: "Standups", icon: Layers },
+    { id: "manual", label: "Manual", icon: Bell },
+  ];
 
   return (
-    <>
-      <div className="filters">
-        <span className="muted" style={{ flex: 1 }}>
-          Reminders show here and on the Development stats page when they fall due. Automatic ones follow Admin panel → Notifications (daily update by {auto.dailyTime} on {auto.days.map(x => WEEKDAYS[x]).join(", ")}).
-        </span>
-        {canManage && <button className="btn" type="button" onClick={() => compose({ tpl: "summary", manager: true })}>Send status summary</button>}
-        {canEdit && <button className="btn primary" type="button" onClick={() => update({ new: "1", edit: null })}>+ New reminder</button>}
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <style jsx global>{`
+        @keyframes spinSlow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spin-icon {
+          animation: spinSlow 1s linear infinite;
+        }
+        @keyframes subtlePulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.55; transform: scale(1.18); }
+        }
+        .pulse-live {
+          animation: subtlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .rem-kpi-card {
+          transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .rem-kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--sh-lg);
+        }
+        .rem-row {
+          transition: background 0.15s ease;
+        }
+        .rem-row:hover {
+          background: var(--sunk) !important;
+        }
+      `}</style>
+
+      {/* ── Top Action & Synchronization Bar ── */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
+          paddingBottom: 2,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span className="npill ok" style={{ fontSize: 11, padding: "3px 9px", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>
+            Live Synced
+          </span>
+          <span className="muted" style={{ fontSize: 13 }}>
+            Automated monitoring across tasks, meetings, milestones, licences & daily standups.
+          </span>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginLeft: "auto" }}>
+          <button
+            className="btn"
+            type="button"
+            disabled={syncing}
+            onClick={triggerSync}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 500 }}
+            title="Scan tasks, meetings, milestones & licences for new reminders"
+          >
+            <RefreshCw size={14} className={syncing ? "spin-icon" : ""} />
+            {syncing ? "Scanning..." : "Scan All Modules"}
+          </button>
+          {canManage && (
+            <button
+              className="btn"
+              type="button"
+              onClick={() => compose({ tpl: "summary", manager: true })}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <Send size={14} />
+              Status Summary
+            </button>
+          )}
+          {canEdit && (
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() => update({ new: "1", edit: null })}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600 }}
+            >
+              <Plus size={15} />
+              New Reminder
+            </button>
+          )}
+        </div>
       </div>
-      <h2 className="sec" style={{ marginTop: 0 }}>Automatic</h2>
-      {!A.length ? <p className="muted" style={{ margin: 0 }}>Nothing due right now. Daily-update reminders appear after {auto.dailyTime} on working days.</p> : (
-        <div className="alist">
-          {A.map(a => (
-            <AItem key={a.key} color={a.color} title={a.title} sub={<span style={{ whiteSpace: "normal" }}>{a.sub}</span>}
-              right={a.meetingId ? <Link className="btn primary" href={`/calendar?edit=${a.meetingId}`}>Open meeting</Link> : <button className="btn primary" type="button" onClick={() => compose({ tpl: a.tpl, devIds: a.devIds })}>Send reminder</button>} />
-          ))}
+
+      {/* ── KPI Metric Summary Cards (Interactive Tab Selectors) ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 14 }}>
+        {/* Due Now / Overdue */}
+        <div
+          onClick={() => setActiveTab("due")}
+          className="rem-kpi-card"
+          style={{
+            cursor: "pointer",
+            background: "var(--surface)",
+            border: `1.5px solid ${activeTab === "due" ? "var(--bad)" : "var(--line)"}`,
+            borderRadius: "var(--rl)",
+            padding: "16px 18px",
+            boxShadow: activeTab === "due" ? "0 0 0 1px var(--bad), var(--sh)" : "var(--sh)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: allDue.length ? "var(--bad)" : "var(--muted)" }}>Due & Overdue</span>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: allDue.length ? "rgba(211, 47, 47, 0.12)" : "var(--sunk)",
+                display: "grid",
+                placeItems: "center",
+                color: allDue.length ? "var(--bad)" : "var(--muted)",
+              }}
+            >
+              <AlertCircle size={17} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: allDue.length ? "var(--bad)" : "var(--fg)" }}>
+              {allDue.length}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+              {allDue.length ? "Requires immediate attention" : "All current reminders cleared"}
+            </div>
+          </div>
+        </div>
+
+        {/* Upcoming */}
+        <div
+          onClick={() => setActiveTab("up")}
+          className="rem-kpi-card"
+          style={{
+            cursor: "pointer",
+            background: "var(--surface)",
+            border: `1.5px solid ${activeTab === "up" ? "var(--info)" : "var(--line)"}`,
+            borderRadius: "var(--rl)",
+            padding: "16px 18px",
+            boxShadow: activeTab === "up" ? "0 0 0 1px var(--info), var(--sh)" : "var(--sh)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--info)" }}>Upcoming Schedule</span>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: "rgba(37, 99, 235, 0.12)",
+                display: "grid",
+                placeItems: "center",
+                color: "var(--info)",
+              }}
+            >
+              <Calendar size={17} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{allUp.length}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Scheduled for upcoming dates</div>
+          </div>
+        </div>
+
+        {/* System Automated */}
+        <div
+          onClick={() => {
+            setSourceFilter("all");
+            setActiveTab("all");
+          }}
+          className="rem-kpi-card"
+          style={{
+            cursor: "pointer",
+            background: "var(--surface)",
+            border: `1.5px solid ${activeTab === "all" ? "var(--accent)" : "var(--line)"}`,
+            borderRadius: "var(--rl)",
+            padding: "16px 18px",
+            boxShadow: activeTab === "all" ? "0 0 0 1px var(--accent), var(--sh)" : "var(--sh)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)" }}>System Synced</span>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: "rgba(15, 118, 110, 0.12)",
+                display: "grid",
+                placeItems: "center",
+                color: "var(--accent)",
+              }}
+            >
+              <Sparkles size={17} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{allAuto.length}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Auto-generated from modules</div>
+          </div>
+        </div>
+
+        {/* Recently Done */}
+        <div
+          onClick={() => setActiveTab("done")}
+          className="rem-kpi-card"
+          style={{
+            cursor: "pointer",
+            background: "var(--surface)",
+            border: `1.5px solid ${activeTab === "done" ? "var(--ok)" : "var(--line)"}`,
+            borderRadius: "var(--rl)",
+            padding: "16px 18px",
+            boxShadow: activeTab === "done" ? "0 0 0 1px var(--ok), var(--sh)" : "var(--sh)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ok)" }}>Completed</span>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: "rgba(21, 146, 74, 0.12)",
+                display: "grid",
+                placeItems: "center",
+                color: "var(--ok)",
+              }}
+            >
+              <CheckCircle2 size={17} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{allDn.length}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Resolved & archived reminders</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Automatic Live Alerts Banner (Standups / Imminent Meetings) ── */}
+      {A.length > 0 ? (
+        <div
+          style={{
+            background: "color-mix(in srgb, var(--warn) 6%, var(--surface))",
+            border: "1.5px solid color-mix(in srgb, var(--warn) 35%, var(--line))",
+            borderRadius: "var(--rl)",
+            padding: "16px 20px",
+            boxShadow: "var(--sh)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
+            <div
+              className="pulse-live"
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "var(--warn)",
+              }}
+            />
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--fg)" }}>
+              Active Real-Time Alerts ({A.length})
+            </h3>
+            <span className="muted" style={{ fontSize: 12 }}>
+              · Triggered dynamically from today's schedule
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {A.map(a => (
+              <div
+                key={a.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 14,
+                  padding: "12px 14px",
+                  background: "var(--surface)",
+                  borderRadius: 10,
+                  border: "1px solid var(--line)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 8,
+                      background: `color-mix(in srgb, ${a.color} 15%, transparent)`,
+                      color: a.color,
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13.5, color: "var(--fg)" }}>{a.title}</div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {a.sub}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {a.meetingId ? (
+                    <Link className="btn primary" href={`/calendar?view=${a.meetingId}`} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <Calendar size={13} />
+                      Open meeting
+                    </Link>
+                  ) : (
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={() => compose({ tpl: a.tpl, devIds: a.devIds })}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                    >
+                      <Send size={13} />
+                      Send reminder
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12.5,
+            color: "var(--muted)",
+            padding: "8px 14px",
+            background: "var(--surface)",
+            borderRadius: 10,
+            border: "1px solid var(--line)",
+          }}
+        >
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--ok)", flexShrink: 0 }} />
+          <span>
+            Standup compliance & meeting alerts monitoring active. Daily-update checks run after {auto.dailyTime} on working days.
+          </span>
         </div>
       )}
-      {table("Due now", due, "due")}
-      {table("Upcoming", up, "up")}
-      {table("Recently done", dn, "done")}
-      {editing !== undefined && <ReminderForm key={editing?.id ?? "new"} reminder={editing} developers={developers} tasks={tasks} onClose={() => update({ edit: null, new: null })} />}
-    </>
+
+      {/* ── Main Toolbar: Segmented Tabs & Source Filters & Search ── */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          background: "var(--surface)",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--rl)",
+          padding: "14px 18px",
+          boxShadow: "var(--sh)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          {/* Main Category Tabs */}
+          <div
+            style={{
+              display: "inline-flex",
+              background: "var(--sunk)",
+              padding: 4,
+              borderRadius: 10,
+              gap: 4,
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveTab("due")}
+              style={{
+                border: "none",
+                background: activeTab === "due" ? "var(--surface)" : "transparent",
+                color: activeTab === "due" ? "var(--bad)" : "var(--muted)",
+                fontWeight: activeTab === "due" ? 700 : 500,
+                fontSize: 13,
+                padding: "6px 14px",
+                borderRadius: 8,
+                cursor: "pointer",
+                boxShadow: activeTab === "due" ? "var(--sh)" : "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>Due Now</span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "1px 6px",
+                  borderRadius: 6,
+                  background: activeTab === "due" ? "rgba(211, 47, 47, 0.12)" : "rgba(0,0,0,0.06)",
+                  color: activeTab === "due" ? "var(--bad)" : "inherit",
+                }}
+              >
+                {due.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("up")}
+              style={{
+                border: "none",
+                background: activeTab === "up" ? "var(--surface)" : "transparent",
+                color: activeTab === "up" ? "var(--info)" : "var(--muted)",
+                fontWeight: activeTab === "up" ? 700 : 500,
+                fontSize: 13,
+                padding: "6px 14px",
+                borderRadius: 8,
+                cursor: "pointer",
+                boxShadow: activeTab === "up" ? "var(--sh)" : "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>Upcoming</span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "1px 6px",
+                  borderRadius: 6,
+                  background: activeTab === "up" ? "rgba(37, 99, 235, 0.12)" : "rgba(0,0,0,0.06)",
+                  color: activeTab === "up" ? "var(--info)" : "inherit",
+                }}
+              >
+                {up.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("done")}
+              style={{
+                border: "none",
+                background: activeTab === "done" ? "var(--surface)" : "transparent",
+                color: activeTab === "done" ? "var(--ok)" : "var(--muted)",
+                fontWeight: activeTab === "done" ? 700 : 500,
+                fontSize: 13,
+                padding: "6px 14px",
+                borderRadius: 8,
+                cursor: "pointer",
+                boxShadow: activeTab === "done" ? "var(--sh)" : "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>Completed</span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "1px 6px",
+                  borderRadius: 6,
+                  background: activeTab === "done" ? "rgba(21, 146, 74, 0.12)" : "rgba(0,0,0,0.06)",
+                  color: activeTab === "done" ? "var(--ok)" : "inherit",
+                }}
+              >
+                {dn.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("all")}
+              style={{
+                border: "none",
+                background: activeTab === "all" ? "var(--surface)" : "transparent",
+                color: activeTab === "all" ? "var(--fg)" : "var(--muted)",
+                fontWeight: activeTab === "all" ? 700 : 500,
+                fontSize: 13,
+                padding: "6px 14px",
+                borderRadius: 8,
+                cursor: "pointer",
+                boxShadow: activeTab === "all" ? "var(--sh)" : "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>All Items</span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "1px 6px",
+                  borderRadius: 6,
+                  background: "rgba(0,0,0,0.06)",
+                }}
+              >
+                {sourceFiltered.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Quick Search Box */}
+          <div style={{ position: "relative", minWidth: 240, flex: "0 1 300px" }}>
+            <Search
+              size={14}
+              style={{
+                position: "absolute",
+                left: 11,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--muted)",
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search reminders, items, people..."
+              style={{
+                width: "100%",
+                fontSize: 13,
+                padding: "7px 30px 7px 32px",
+                borderRadius: 8,
+                border: "1px solid var(--line2)",
+                background: "var(--surface)",
+                color: "var(--fg)",
+                outline: "none",
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--muted)",
+                  cursor: "pointer",
+                  padding: 2,
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Module Source Filter Chips */}
+        <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap", paddingTop: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginRight: 2 }}>
+            Source:
+          </span>
+          {sources.map(s => {
+            const active = sourceFilter === s.id;
+            const count = s.id === "all" ? reminders.length : reminders.filter(r => (r.sourceType || "manual") === s.id).length;
+            const Icon = s.icon;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSourceFilter(s.id)}
+                style={{
+                  border: `1px solid ${active ? "var(--accent)" : "var(--line2)"}`,
+                  background: active ? "var(--accent)" : "transparent",
+                  color: active ? "var(--accent-ink)" : "var(--fg)",
+                  fontWeight: active ? 600 : 500,
+                  fontSize: 12,
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  transition: "all 0.12s ease",
+                }}
+              >
+                <Icon size={12} style={{ opacity: active ? 1 : 0.7 }} />
+                <span>{s.label}</span>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    opacity: 0.85,
+                    padding: "1px 5px",
+                    borderRadius: 10,
+                    background: active ? "rgba(255,255,255,0.22)" : "var(--sunk)",
+                    color: active ? "#fff" : "var(--muted)",
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Main Reminders List Container ── */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--rl)",
+          boxShadow: "var(--sh)",
+          overflow: "hidden",
+        }}
+      >
+        {/* List Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "14px 20px",
+            borderBottom: "1px solid var(--line)",
+            background: "var(--sunk)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>
+              {activeTab === "due" && "Due & Overdue Reminders"}
+              {activeTab === "up" && "Upcoming Scheduled Reminders"}
+              {activeTab === "done" && "Recently Completed Reminders"}
+              {activeTab === "all" && "All Synced Reminders"}
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--muted)",
+                background: "var(--surface)",
+                padding: "1px 7px",
+                borderRadius: 10,
+                border: "1px solid var(--line)",
+              }}
+            >
+              {displayedList.length} items
+            </span>
+          </div>
+
+          <div style={{ fontSize: 12, color: "var(--muted)" }}>
+            {sourceFilter !== "all" && (
+              <span>
+                Filtered by: <strong style={{ color: "var(--fg)" }}>{SOURCE_CONFIG[sourceFilter]?.label || sourceFilter}</strong>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* List Rows or Empty State */}
+        {!displayedList.length ? (
+          <div
+            style={{
+              padding: "48px 24px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: "50%",
+                background: "var(--sunk)",
+                display: "grid",
+                placeItems: "center",
+                color: "var(--muted)",
+              }}
+            >
+              <Inbox size={26} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--fg)", marginBottom: 4 }}>
+                {search ? "No matching reminders found" : "No reminders in this view"}
+              </div>
+              <div className="muted" style={{ fontSize: 13, maxWidth: 380, margin: "0 auto" }}>
+                {search
+                  ? `No reminders matching "${search}". Try clearing your search or choosing a different source filter.`
+                  : activeTab === "due"
+                  ? "Great job! There are no overdue or pending reminders due right now."
+                  : activeTab === "up"
+                  ? "No upcoming reminders scheduled for the selected filter."
+                  : "No completed reminders recorded yet."}
+              </div>
+            </div>
+            {search && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setSearch("")}
+                style={{ fontSize: 12.5, marginTop: 4 }}
+              >
+                Clear Search
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {displayedList.map(r => {
+              const src = SOURCE_CONFIG[r.sourceType || "manual"] || SOURCE_CONFIG.manual;
+              const SourceIcon = src.icon;
+              const dueInfo = getDueStatus(r.date, r.time, r.done);
+
+              return (
+                <div
+                  key={r.id}
+                  className="rem-row"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    padding: "15px 20px",
+                    borderBottom: "1px solid var(--line)",
+                    position: "relative",
+                    opacity: r.done ? 0.72 : 1,
+                  }}
+                >
+                  {/* Left Urgency Color Stripe */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 4,
+                      background: dueInfo.stripeColor,
+                    }}
+                  />
+
+                  {/* Main Information */}
+                  <div style={{ flex: 1, minWidth: 0, paddingLeft: 6 }}>
+                    {/* Badges line: Source, Project, Due timing, Repeat */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6, flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4.5,
+                          padding: "2px 7.5px",
+                          borderRadius: 6,
+                          background: src.bg,
+                          color: src.color,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        <SourceIcon size={12} />
+                        <span>{src.label}</span>
+                      </span>
+
+                      {r.projectName && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: "rgba(15, 118, 110, 0.08)",
+                            color: "var(--accent)",
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                          }}
+                        >
+                          <Folder size={11} />
+                          <span>{r.projectName}</span>
+                        </span>
+                      )}
+
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          background: dueInfo.badgeBg,
+                          color: dueInfo.badgeColor,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Clock size={11} />
+                        <span>{dueInfo.label}</span>
+                      </span>
+
+                      {r.repeat && r.repeat !== "none" && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: "var(--sunk)",
+                            color: "var(--muted)",
+                            fontSize: 11,
+                          }}
+                        >
+                          <RotateCcw size={10} />
+                          <span>{REPEAT[r.repeat] || r.repeat}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Title */}
+                    <div
+                      onClick={() => {
+                        setViewingReminder(r);
+                        update({ view: r.id, edit: null });
+                      }}
+                      style={{
+                        fontSize: 14.5,
+                        fontWeight: 600,
+                        color: "var(--fg)",
+                        lineHeight: 1.4,
+                        textDecoration: r.done ? "line-through" : "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {r.title}
+                    </div>
+
+                    {/* Metadata line: Linked Item, Developer assignees, Notes */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 14,
+                        marginTop: 6,
+                        flexWrap: "wrap",
+                        fontSize: 12.5,
+                        color: "var(--muted)",
+                      }}
+                    >
+                      {/* Assignee */}
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <User size={13} style={{ color: "var(--muted)", flexShrink: 0 }} />
+                        <span style={{ color: "var(--fg)", fontWeight: 500 }}>
+                          {r.developerIds.map(devName).filter(Boolean).join(", ") || "Unassigned"}
+                        </span>
+                      </div>
+
+                      {/* Linked Item */}
+                      {getItemLink(r) && (
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <span>·</span>
+                          {getItemLink(r)}
+                        </div>
+                      )}
+
+                      {/* Note */}
+                      {r.note && (
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            color: "var(--muted)",
+                            maxWidth: 400,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={r.note}
+                        >
+                          <span>·</span>
+                          <span>{r.note}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions Column */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 7,
+                      flexShrink: 0,
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    {!r.done && canEdit && (
+                      <>
+                        {/* Done Button */}
+                        <button
+                          type="button"
+                          onClick={() => mark(r, false)}
+                          className="btn"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "6px 12px",
+                            fontSize: 12.5,
+                            fontWeight: 600,
+                            background: "rgba(21, 146, 74, 0.09)",
+                            color: "var(--ok)",
+                            border: "1px solid rgba(21, 146, 74, 0.28)",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                          }}
+                          title={r.repeat !== "none" ? "Complete cycle and move to next" : "Mark as completed"}
+                        >
+                          <Check size={14} />
+                          <span>{r.repeat !== "none" ? "Done · Next" : "Mark Done"}</span>
+                        </button>
+
+                        {/* +1 Day Snooze Button */}
+                        <button
+                          type="button"
+                          onClick={() => mark(r, true)}
+                          className="btn"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "6px 10px",
+                            fontSize: 12.5,
+                            borderRadius: 8,
+                            cursor: "pointer",
+                          }}
+                          title="Snooze reminder by +1 day"
+                        >
+                          <Clock size={13} />
+                          <span>+1 Day</span>
+                        </button>
+
+                        {/* Send Message Button */}
+                        <button
+                          type="button"
+                          onClick={() => send(r)}
+                          className="btn"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "6px 10px",
+                            fontSize: 12.5,
+                            borderRadius: 8,
+                            cursor: "pointer",
+                          }}
+                          title="Send notification via WhatsApp or Email"
+                        >
+                          <Send size={13} />
+                          <span>Send</span>
+                        </button>
+                      </>
+                    )}
+
+                    {r.done && (
+                      <span
+                        className="npill ok"
+                        style={{
+                          fontSize: 12,
+                          padding: "4px 10px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Check size={13} />
+                        Completed
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewingReminder(r);
+                        update({ view: r.id, edit: null });
+                      }}
+                      className="btn"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "6px 10px",
+                        fontSize: 12.5,
+                        borderRadius: 8,
+                        cursor: "pointer",
+                      }}
+                      title="View reminder details"
+                    >
+                      <Eye size={13} />
+                      <span>View</span>
+                    </button>
+
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => update({ edit: r.id, view: null })}
+                        className="btn"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "6px 10px",
+                          fontSize: 12.5,
+                          borderRadius: 8,
+                          cursor: "pointer",
+                        }}
+                        title="Edit reminder details"
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── View Reminder Modal ── */}
+      {viewingReminder && (
+        <ReminderDetailModal
+          reminder={viewingReminder}
+          developers={developers}
+          canEdit={canEdit}
+          canManage={canManage}
+          onEdit={() => {
+            const id = viewingReminder.id;
+            setViewingReminder(null);
+            update({ edit: id, view: null });
+          }}
+          onClose={() => {
+            setViewingReminder(null);
+            update({ view: null });
+          }}
+        />
+      )}
+
+      {/* ── Edit / Create Reminder Panel Modal ── */}
+      {editing !== undefined && (
+        <ReminderForm
+          key={editing?.id ?? "new"}
+          reminder={editing}
+          developers={developers}
+          tasks={tasks}
+          onClose={() => update({ edit: null, new: null })}
+        />
+      )}
+    </div>
   );
 }
 
-function ReminderForm({ reminder, developers, tasks, onClose }: { reminder: ReminderDTO | null; developers: { id: string; name: string }[]; tasks: { id: string; label: string }[]; onClose: () => void }) {
-  const initial = { title: reminder?.title ?? "", date: reminder?.date ?? today(), time: reminder?.time ?? "09:00", repeat: reminder?.repeat ?? "none", template: reminder?.template ?? "custom", developerIds: reminder?.developerIds ?? [], taskId: reminder?.taskId ?? "", note: reminder?.note ?? "" };
+function ReminderForm({
+  reminder,
+  developers,
+  tasks,
+  onClose,
+}: {
+  reminder: ReminderDTO | null;
+  developers: { id: string; name: string }[];
+  tasks: { id: string; label: string }[];
+  onClose: () => void;
+}) {
+  const initial = {
+    title: reminder?.title ?? "",
+    date: reminder?.date ?? today(),
+    time: reminder?.time ?? "09:00",
+    repeat: reminder?.repeat ?? "none",
+    template: reminder?.template ?? "custom",
+    developerIds: reminder?.developerIds ?? [],
+    taskId: reminder?.taskId ?? "",
+    note: reminder?.note ?? "",
+  };
   const [f, setF] = useState(initial);
   const [error, setError] = useState("");
   const [busy, start] = useTransition();
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }));
-  const taskOptions = reminder?.taskId && !tasks.some(t => t.id === reminder.taskId) ? [{ id: reminder.taskId, label: reminder.taskTitle }, ...tasks] : tasks;
+  const taskOptions =
+    reminder?.taskId && !tasks.some(t => t.id === reminder.taskId)
+      ? [{ id: reminder.taskId, label: reminder.taskTitle }, ...tasks]
+      : tasks;
+
   return (
-    <Panel title={reminder ? "Edit reminder" : "New reminder"} dirty={dirty} onClose={onClose}
-      footer={<>
-        <span>{reminder && <button className="btn danger" type="button" disabled={busy} onClick={() => confirm("Delete this reminder?") && start(async () => { const r = await deleteReminder(reminder.id); if (r.ok) { toast("Reminder deleted"); onClose(); } })}>Delete</button>}</span>
-        <div>
-          <button className="btn" type="button" onClick={() => { if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose(); }}>Cancel</button>
-          <button className="btn primary" type="submit" form="remform" disabled={busy}>Save reminder</button>
+    <Panel
+      title={reminder ? "Edit reminder" : "New reminder"}
+      dirty={dirty}
+      onClose={onClose}
+      footer={
+        <>
+          <span>
+            {reminder && (
+              <button
+                className="btn danger"
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  confirm("Delete this reminder?") &&
+                  start(async () => {
+                    const r = await deleteReminder(reminder.id);
+                    if (r.ok) {
+                      toast("Reminder deleted");
+                      onClose();
+                    }
+                  })
+                }
+              >
+                Delete
+              </button>
+            )}
+          </span>
+          <div>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                if (!dirty || confirm("You have unsaved changes. Close without saving?")) onClose();
+              }}
+            >
+              Cancel
+            </button>
+            <button className="btn primary" type="submit" form="remform" disabled={busy}>
+              Save reminder
+            </button>
+          </div>
+        </>
+      }
+    >
+      <form
+        className="form"
+        id="remform"
+        onSubmit={e => {
+          e.preventDefault();
+          start(async () => {
+            setError("");
+            const r = await saveReminder({ ...f, id: reminder?.id, repeat: f.repeat as "none" });
+            if (!r.ok) {
+              setError(r.error);
+              return;
+            }
+            toast("Reminder saved");
+            onClose();
+          });
+        }}
+      >
+        <div className="field full">
+          <label htmlFor="rm_t">Reminder</label>
+          <AntInput
+            id="rm_t"
+            required
+            value={f.title}
+            placeholder="e.g. Follow up Pipeline Report with MPD"
+            onChange={e => set("title", e.target.value)}
+            autoFocus={!reminder}
+          />
         </div>
-      </>}>
-      <form className="form" id="remform" onSubmit={e => { e.preventDefault(); start(async () => { setError(""); const r = await saveReminder({ ...f, id: reminder?.id, repeat: f.repeat as "none" }); if (!r.ok) { setError(r.error); return; } toast("Reminder saved"); onClose(); }); }}>
-        <div className="field full"><label htmlFor="rm_t">Reminder</label><AntInput id="rm_t" required value={f.title} placeholder="e.g. Follow up Pipeline Report with MPD" onChange={e => set("title", e.target.value)} autoFocus={!reminder} /></div>
-        <div className="field"><label htmlFor="rm_d">Date</label><AntDatePicker id="rm_d" value={f.date} onChange={e => set("date", e.target.value)} /></div>
-        <div className="field"><label htmlFor="rm_tm">Time</label><AntInput id="rm_tm" type="time" value={f.time} onChange={e => set("time", e.target.value)} /></div>
-        <div className="field"><label htmlFor="rm_r">Repeat</label><AntSelect id="rm_r" value={f.repeat} onChange={e => set("repeat", e.target.value)} options={Object.entries(REPEAT).map(([k, l]) => [k, l])} /></div>
-        <div className="field"><label htmlFor="rm_tpl">Message to send</label><AntSelect id="rm_tpl" value={f.template} onChange={e => set("template", e.target.value)} options={(Object.keys(TEMPLATE_DEFAULTS) as TemplateKey[]).map(k => [k, TEMPLATE_DEFAULTS[k].label])} /></div>
+        <div className="field">
+          <label htmlFor="rm_d">Date</label>
+          <AntDatePicker id="rm_d" value={f.date} onChange={e => set("date", e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="rm_tm">Time</label>
+          <AntTimePicker id="rm_tm" value={f.time} onChange={e => set("time", e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="rm_r">Repeat</label>
+          <AntSelect
+            id="rm_r"
+            value={f.repeat}
+            onChange={e => set("repeat", e.target.value)}
+            options={Object.entries(REPEAT).map(([k, l]) => [k, l])}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="rm_tpl">Message to send</label>
+          <AntSelect
+            id="rm_tpl"
+            value={f.template}
+            onChange={e => set("template", e.target.value)}
+            options={(Object.keys(TEMPLATE_DEFAULTS) as TemplateKey[]).map(k => [k, TEMPLATE_DEFAULTS[k].label])}
+          />
+        </div>
         <div className="field full">
           <label>Notify</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
             {developers.map(d => (
-              <label key={d.id} style={{ display: "inline-flex", gap: 6, alignItems: "center", cursor: "pointer", color: "var(--fg)", font: "inherit" }}>
-                <AntCheckbox checked={f.developerIds.includes(d.id)} onChange={e => set("developerIds", e.target.checked ? [...f.developerIds, d.id] : f.developerIds.filter(x => x !== d.id))}>
+              <label
+                key={d.id}
+                style={{
+                  display: "inline-flex",
+                  gap: 6,
+                  alignItems: "center",
+                  cursor: "pointer",
+                  color: "var(--fg)",
+                  font: "inherit",
+                }}
+              >
+                <AntCheckbox
+                  checked={f.developerIds.includes(d.id)}
+                  onChange={e =>
+                    set(
+                      "developerIds",
+                      e.target.checked ? [...f.developerIds, d.id] : f.developerIds.filter(x => x !== d.id)
+                    )
+                  }
+                >
                   {d.name}
                 </AntCheckbox>
               </label>
             ))}
           </div>
         </div>
-        <div className="field full"><label htmlFor="rm_i">Linked item</label><AntSelect id="rm_i" value={f.taskId} onChange={e => set("taskId", e.target.value)} empty="—" options={taskOptions.map(t => [t.id, t.label])} /></div>
-        <div className="field full"><label htmlFor="rm_n">Note</label><AntTextArea id="rm_n" rows={3} value={f.note} onChange={e => set("note", e.target.value)} /></div>
-        {error && <p className="field full" role="alert" style={{ color: "var(--bad)", margin: 0 }}>{error}</p>}
+        <div className="field full">
+          <label htmlFor="rm_i">Linked item</label>
+          <AntSelect
+            id="rm_i"
+            value={f.taskId}
+            onChange={e => set("taskId", e.target.value)}
+            empty="—"
+            options={taskOptions.map(t => [t.id, t.label])}
+          />
+        </div>
+        <div className="field full">
+          <label htmlFor="rm_n">Note</label>
+          <AntTextArea id="rm_n" rows={3} value={f.note} onChange={e => set("note", e.target.value)} />
+        </div>
+        {error && (
+          <p className="field full" role="alert" style={{ color: "var(--bad)", margin: 0 }}>
+            {error}
+          </p>
+        )}
       </form>
     </Panel>
   );

@@ -1,23 +1,56 @@
 import type { Metadata } from "next";
 import { requireViewer } from "@/lib/session";
 import { db } from "@/lib/db";
-import { ChangePassword } from "./_components/ChangePassword";
+import { ProfileView, type ProfileData } from "./_components/ProfileView";
 
 export const metadata: Metadata = { title: "My account" };
 
+function formatDate(d: Date | null | undefined): string {
+  if (!d) return "Active member";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(d));
+  } catch {
+    return "Active member";
+  }
+}
+
 export default async function MyAccountPage() {
   const viewer = await requireViewer();
-  const dev = viewer.developerId ? await db.developer.findUnique({ where: { id: viewer.developerId }, select: { name: true } }) : null;
-  return (
-    <div style={{ maxWidth: 520 }}>
-      <div className="tablewrap" style={{ padding: "16px 18px", marginBottom: 20 }}>
-        <div style={{ fontWeight: 600, fontSize: 16 }}>{viewer.name}</div>
-        <div className="muted">{viewer.email}</div>
-        <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-          Role: {viewer.role}{dev ? ` · Developer record: ${dev.name}` : ""}
-        </div>
-      </div>
-      <ChangePassword />
-    </div>
-  );
+  const acc = await db.account.findUnique({
+    where: { id: viewer.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isOwner: true,
+      active: true,
+      createdAt: true,
+      developer: {
+        select: {
+          id: true,
+          name: true,
+          title: true,
+        },
+      },
+    },
+  });
+
+  const profileData: ProfileData = {
+    id: viewer.id,
+    name: acc?.name ?? viewer.name,
+    email: acc?.email ?? viewer.email,
+    role: acc?.role ?? viewer.role,
+    isOwner: acc?.isOwner ?? viewer.isOwner,
+    active: acc?.active ?? true,
+    createdAt: formatDate(acc?.createdAt),
+    developerName: acc?.developer?.name ?? null,
+    developerTitle: acc?.developer?.title ?? null,
+  };
+
+  return <ProfileView profile={profileData} />;
 }

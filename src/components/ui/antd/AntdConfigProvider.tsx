@@ -109,6 +109,10 @@ export function AntdConfigProvider({ children }: { children: React.ReactNode }) 
           controlHeight: 38,
           borderRadius: 8,
         },
+        TimePicker: {
+          controlHeight: 38,
+          borderRadius: 8,
+        },
         InputNumber: {
           controlHeight: 38,
           borderRadius: 8,

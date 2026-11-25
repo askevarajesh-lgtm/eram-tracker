@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { LayoutList, Kanban, Upload, Download } from "lucide-react";
 import type { TaskStatus } from "@prisma/client";
 import { PRIORITY_COLOR, STATUS_MAP } from "@/lib/constants";
@@ -28,6 +28,7 @@ type Props = {
   canManage: boolean;
   openNew: boolean;
   openId?: string;
+  openViewId?: string;
   defaultProjectId: string;
   viewerDeveloperId?: string | null;
   initialView?: "list" | "kanban";
@@ -43,6 +44,7 @@ export function TasksView({
   canManage,
   openNew,
   openId,
+  openViewId,
   defaultProjectId,
   viewerDeveloperId = null,
   initialView = "list",
@@ -51,7 +53,18 @@ export function TasksView({
   const { update } = useUrlUpdate();
   const [limit, setLimit] = useState(PAGE);
   const [busy, start] = useTransition();
-  const [viewing, setViewing] = useState<TaskDTO | null>(null);
+  const [viewing, setViewing] = useState<TaskDTO | null>(() => {
+    return openViewId ? tasks.find((t) => t.id === openViewId) ?? null : null;
+  });
+
+  useEffect(() => {
+    if (openViewId) {
+      setViewing(tasks.find((t) => t.id === openViewId) ?? null);
+    } else {
+      setViewing(null);
+    }
+  }, [openViewId, tasks]);
+
   const [newStatusPreset, setNewStatusPreset] = useState<TaskStatus | undefined>(undefined);
   const [importing, setImporting] = useState(false);
 
@@ -94,7 +107,7 @@ export function TasksView({
 
   // which task is open in the side panel is kept in the URL (?edit=<id> or ?new=1)
   const editing = openNew ? "new" : openId ? tasks.find(t => t.id === openId) ?? null : null;
-  const setOpen = (v: string | null) => update({ new: v === "new" ? "1" : null, edit: v && v !== "new" ? v : null });
+  const setOpen = (v: string | null) => update({ new: v === "new" ? "1" : null, edit: v && v !== "new" ? v : null, ...(viewMode === "kanban" ? { view: "kanban" } : { view: null }) });
 
   const now = today();
   const shown = useMemo(() => tasks.slice(0, limit), [tasks, limit]);
@@ -190,7 +203,10 @@ export function TasksView({
           canEdit={canEdit}
           canManage={canManage}
           viewerDeveloperId={viewerDeveloperId}
-          onView={(t) => setViewing(t)}
+          onView={(t) => {
+            setViewing(t);
+            update({ view: t.id, edit: null });
+          }}
           onEdit={(id) => setOpen(id)}
           onNewInStatus={handleNewInStatus}
         />
@@ -281,7 +297,10 @@ export function TasksView({
               width: 110,
               render: (_: unknown, t: TaskDTO) => (
                 <RecordActions
-                  onView={() => setViewing(t)}
+                  onView={() => {
+                    setViewing(t);
+                    update({ view: t.id, edit: null });
+                  }}
                   onEdit={canEdit ? () => setOpen(t.id) : undefined}
                   onDelete={
                     canManage
@@ -309,7 +328,10 @@ export function TasksView({
               dataSource={tasks}
               columns={columns}
               rowKey="id"
-              onRowClick={t => setViewing(t)}
+              onRowClick={t => {
+                setViewing(t);
+                update({ view: t.id, edit: null });
+              }}
               pagination={{
                 defaultPageSize: 10,
                 showSizeChanger: true,
@@ -333,7 +355,10 @@ export function TasksView({
             setViewing(null);
             setOpen(id);
           }}
-          onClose={() => setViewing(null)}
+          onClose={() => {
+            setViewing(null);
+            update({ view: viewMode === "kanban" ? "kanban" : null });
+          }}
         />
       )}
 

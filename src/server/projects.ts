@@ -44,6 +44,12 @@ export async function deleteProject(id: string): Promise<ActionResult> {
   if (p._count.tasks) return { ok: false, error: `${p.name} has ${p._count.tasks} task(s). Move or delete them first.` };
   await db.$transaction(async tx => {
     await tx.project.delete({ where: { id } });
+    const remaining = await tx.project.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, sortOrder: true } });
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i].sortOrder !== i) {
+        await tx.project.update({ where: { id: remaining[i].id }, data: { sortOrder: i } });
+      }
+    }
     await audit(tx, viewer, "delete", "project", id, p.name);
   });
   revalidatePath("/", "layout");

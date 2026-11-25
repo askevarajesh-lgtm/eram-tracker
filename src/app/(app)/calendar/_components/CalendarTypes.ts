@@ -1,0 +1,70 @@
+export type MeetingDTO = {
+  id: string;
+  title: string;
+  type: string;
+  status: "Planned" | "Done" | "Cancelled";
+  date: string;
+  startTime: string;
+  endTime: string;
+  mode: string;
+  location: string;
+  projectId: string;
+  companyId: string;
+  organizer: string;
+  remindMinutes: number;
+  developerIds: string[];
+  inviteeRecordIds: string[];
+  guests: string;
+  agenda: string;
+  minutes: string;
+};
+
+export type CalEvent = {
+  kind: "meet" | "due" | "rem" | "live";
+  id: string;
+  date: string;
+  time: string;
+  endTime?: string;
+  title: string;
+  meetingType?: string;
+  status?: string;
+  priority?: string;
+  mode?: string;
+  location?: string;
+  developerIds?: string[];
+  inviteeRecordIds?: string[];
+  guests?: string;
+  projectId?: string;
+  companyId?: string;
+  projectName?: string;
+  companyName?: string;
+  subtitle?: string;
+  note?: string;
+  progress?: number | null;
+  href?: string;
+};
+
+export type Dev = { id: string; name: string; email: string; whatsapp: string };
+export type Rec = { id: string; name: string; email: string; sub: string };
+
+export type CalendarViewProps = {
+  month: string;
+  view: "month" | "agenda";
+  selected: string;
+  show: string[];
+  gridStart: string;
+  events: CalEvent[];
+  meetings: MeetingDTO[];
+  developers: Dev[];
+  records: Rec[];
+  projects: { id: string; name: string }[];
+  companies: { id: string; name: string }[];
+  organizer: string;
+  canEdit: boolean;
+  canManage: boolean;
+  openId?: string;
+  openViewId?: string;
+  openNew: boolean;
+  activeDevFilter?: string;
+  activeProjectFilter?: string;
+};

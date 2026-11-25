@@ -24,6 +24,7 @@ type Props = {
   viewer: IssueViewer;
   openNew: boolean;
   openId?: string;
+  openViewId?: string;
   anyIssues: boolean;
   filtered?: boolean;
   totalOpen?: number;
@@ -67,17 +68,27 @@ export const PriorityChip = ({ p }: { p: string }) => {
   );
 };
 
-export function IssuesView({ issues, lookups, sla, viewer, openNew, openId, anyIssues, filtered = false }: Props) {
+export function IssuesView({ issues, lookups, sla, viewer, openNew, openId, openViewId, anyIssues, filtered = false }: Props) {
   const { update } = useUrlUpdate();
   const [resolving, setResolving] = useState<IssueDTO | null>(null);
-  const [viewing, setViewing] = useState<IssueDTO | null>(null);
+  const [viewing, setViewing] = useState<IssueDTO | null>(() => {
+    return openViewId ? issues.find((x) => x.id === openViewId) ?? null : null;
+  });
   const [busy, start] = useTransition();
   // response-time countdowns tick every minute
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(t); }, []);
 
+  useEffect(() => {
+    if (openViewId) {
+      setViewing(issues.find((x) => x.id === openViewId) ?? null);
+    } else {
+      setViewing(null);
+    }
+  }, [openViewId, issues]);
+
   const editing = openNew ? "new" : openId ? issues.find(x => x.id === openId) ?? null : null;
-  const setOpen = (v: string | null) => update({ new: v === "new" ? "1" : null, edit: v && v !== "new" ? v : null });
+  const setOpen = (v: string | null) => update({ new: v === "new" ? "1" : null, edit: v && v !== "new" ? v : null, view: null });
 
   const take = (x: IssueDTO) => start(async () => {
     const r = await takeIssue(x.id);
@@ -367,7 +378,10 @@ export function IssuesView({ issues, lookups, sla, viewer, openNew, openId, anyI
               </button>
             )}
             <RecordActions
-              onView={() => setViewing(x)}
+              onView={() => {
+                setViewing(x);
+                update({ view: x.id, edit: null });
+              }}
               onEdit={canEdit ? () => setOpen(x.id) : undefined}
               onDelete={
                 canDelete
@@ -430,7 +444,10 @@ export function IssuesView({ issues, lookups, sla, viewer, openNew, openId, anyI
           dataSource={list}
           columns={columns}
           rowKey="id"
-          onRowClick={x => setViewing(x)}
+          onRowClick={x => {
+            setViewing(x);
+            update({ view: x.id, edit: null });
+          }}
           pagination={{
             defaultPageSize: 10,
             showSizeChanger: true,
@@ -453,7 +470,10 @@ export function IssuesView({ issues, lookups, sla, viewer, openNew, openId, anyI
             setViewing(null);
             setOpen(id);
           }}
-          onClose={() => setViewing(null)}
+          onClose={() => {
+            setViewing(null);
+            update({ view: null });
+          }}
         />
       )}
 

@@ -27,14 +27,22 @@ function mayEdit(v: Viewer, existing: IssueWithAssignees | null) {
   return devs.length === 0 || devs.includes(v.developerId);
 }
 
-/** TKN-YYMMDD-NNN, numbered per day. Call inside a transaction. */
+/** TKN-YYMMDD-NNN, numbered per day. Reuses any deleted or missing sequence numbers. */
 async function nextToken(tx: Tx) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(${TOKEN_LOCK})`;
   const d = new Date().toISOString().slice(2, 10).replace(/-/g, "");
   const prefix = `TKN-${d}-`;
-  const last = await tx.issue.findFirst({ where: { id: { startsWith: prefix } }, orderBy: { id: "desc" }, select: { id: true } });
-  const n = last ? parseInt(last.id.slice(prefix.length), 10) + 1 : 1;
-  return prefix + String(n).padStart(3, "0");
+  const rows = await tx.issue.findMany({ where: { id: { startsWith: prefix } }, select: { id: true } });
+  const used = new Set(
+    rows
+      .map(r => parseInt(r.id.slice(prefix.length), 10))
+      .filter(n => Number.isInteger(n) && n > 0)
+  );
+  let candidate = 1;
+  while (used.has(candidate)) {
+    candidate++;
+  }
+  return prefix + String(candidate).padStart(3, "0");
 }
 
 const devName = async (tx: Tx, ids: string[]) =>

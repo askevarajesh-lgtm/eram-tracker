@@ -860,7 +860,7 @@ export function HomeView({
               {data.meetings.map(m => (
                 <Link
                   key={m.id}
-                  href={`/calendar?edit=${m.id}`}
+                  href={`/calendar?view=${m.id}`}
                   className="ds-item-card"
                   style={{ ["--stripe-c" as string]: meetingColor(m.type) }}
                 >
@@ -1188,7 +1188,7 @@ export function HomeView({
                         {v.working.map(t => (
                           <Link
                             key={t.id}
-                            href={`/tasks?edit=${t.id}`}
+                            href={`/tasks?view=${t.id}`}
                             className="ds-dev-task-item"
                           >
                             <div className="ds-dev-task-left">
@@ -1392,7 +1392,7 @@ export function HomeView({
               {data.feed.map((f, i) => (
                 <Link
                   key={i}
-                  href={`/tasks?edit=${f.id}`}
+                  href={`/tasks?view=${f.id}`}
                   className="ds-item-card"
                   style={{
                     ["--stripe-c" as string]: STATUS_MAP[f.to as TaskStatus]?.color ?? "var(--muted)",
@@ -1446,7 +1446,7 @@ export function HomeView({
                 return (
                   <Link
                     key={t.id}
-                    href={`/tasks?edit=${t.id}`}
+                    href={`/tasks?view=${t.id}`}
                     className="ds-item-card"
                     style={{ ["--stripe-c" as string]: stripeColor }}
                   >
@@ -1499,7 +1499,7 @@ function UrgentList({ issues, sla }: { issues: HomeData["urgentIssues"]; sla: Ho
         return (
           <Link
             key={x.id}
-            href={`/issues?edit=${x.id}`}
+            href={`/issues?view=${x.id}`}
             className="ds-item-card"
             style={{ ["--stripe-c" as string]: "var(--bad)" }}
           >
@@ -1601,7 +1601,7 @@ function ReminderBanner({ data }: { data: HomeData }) {
             {a.sub && <div className="muted" style={{ fontSize: 11.5 }}>{a.sub}</div>}
           </div>
           {a.meetingId ? (
-            <Link className="ds-btn ds-btn-primary" href={`/calendar?edit=${a.meetingId}`}>
+            <Link className="ds-btn ds-btn-primary" href={`/calendar?view=${a.meetingId}`}>
               Open meeting
             </Link>
           ) : (
@@ -1636,7 +1636,7 @@ function ReminderBanner({ data }: { data: HomeData }) {
               Due {fmtDay(r.date)} {r.time}
             </div>
           </div>
-          <Link className="ds-btn" href={`/reminders?edit=${r.id}`}>
+          <Link className="ds-btn" href={`/reminders?view=${r.id}`}>
             Open
           </Link>
         </div>

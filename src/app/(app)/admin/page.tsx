@@ -26,7 +26,7 @@ export default async function AdminDashboardPage() {
   // Needs attention
   const att: AdminData["attention"] = [];
   pools.filter(p => p.assigned > p.quantity).forEach(p => att.push({ color: "var(--bad)", title: `${p.software} ${p.type}: ${p.assigned} assigned, only ${p.quantity} purchased`, sub: "Over-allocated", href: `/licences?sw=${encodeURIComponent(p.software)}` }));
-  due.forEach(p => { const n = daysUntil(p.renewal)!; att.push({ color: n < 0 ? "var(--bad)" : "var(--warn)", title: `${p.software} ${p.type}${p.companyName ? ` · ${p.companyName}` : ""}`, sub: n < 0 ? `Expired ${fmtDay(p.renewal)}` : `Renews in ${n} days (${fmtDay(p.renewal)})`, href: `/licences?edit=${p.id}` }); });
+  due.forEach(p => { const n = daysUntil(p.renewal)!; att.push({ color: n < 0 ? "var(--bad)" : "var(--warn)", title: `${p.software} ${p.type}${p.companyName ? ` · ${p.companyName}` : ""}`, sub: n < 0 ? `Expired ${fmtDay(p.renewal)}` : `Renews in ${n} days (${fmtDay(p.renewal)})`, href: `/licences?view=${p.id}` }); });
   const inactiveLic = records.filter(r => r.status === "Inactive" && r.licences.length);
   if (inactiveLic.length) att.push({ color: "var(--warn)", title: `${inactiveLic.length} inactive ${inactiveLic.length === 1 ? "person" : "people"} still holding licences`, sub: inactiveLic.slice(0, 4).map(r => r.name).join(", ") + (inactiveLic.length > 4 ? "…" : ""), href: "/users" });
   const noComp = records.filter(r => !r.companyId);

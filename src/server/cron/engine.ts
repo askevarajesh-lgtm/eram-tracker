@@ -1,0 +1,731 @@
+import { db } from "@/lib/db";
+import { dayStr, toDay, today, fmtDay } from "@/lib/dates";
+import { addDays } from "@/lib/work";
+import { getNotifySettings } from "@/lib/settings";
+import {
+  createNotification,
+  createNotificationForRoles,
+  createNotificationForDeveloper,
+} from "@/server/notifications";
+
+const nowHM = () => {
+  const d = new Date();
+  return (
+    String(d.getHours()).padStart(2, "0") +
+    ":" +
+    String(d.getMinutes()).padStart(2, "0")
+  );
+};
+
+// --------------------------------------------------------------------------------
+// 1. Process Due Reminders (Manual + Auto)
+// --------------------------------------------------------------------------------
+export async function processDueReminders() {
+  const curDay = today();
+  const curHM = nowHM();
+  const todayDate = toDay(curDay)!;
+
+  // Reminders that are due now or earlier, not yet marked done, not yet notified
+  const due = await db.reminder.findMany({
+    where: {
+      done: false,
+      notified: false,
+      OR: [
+        { date: { lt: todayDate } },
+        { date: todayDate, OR: [{ time: "" }, { time: { lte: curHM } }] },
+      ],
+    },
+    include: {
+      developers: { select: { developerId: true } },
+      createdBy: { select: { id: true, name: true } },
+      task: { select: { id: true, title: true, sno: true } },
+    },
+    take: 100,
+  });
+
+  let notifiedCount = 0;
+
+  for (const r of due) {
+    const link = r.taskId
+      ? `/tasks?view=${r.taskId}`
+      : `/reminders?view=${r.id}`;
+
+    const title = `Reminder: ${r.title}`;
+    const message = r.note
+      ? `${r.note} (Due: ${dayStr(r.date)} ${r.time})`
+      : `Scheduled reminder for ${dayStr(r.date)} ${r.time}`;
+
+    const entityType = r.sourceType && r.sourceType !== "manual" ? r.sourceType : "reminder";
+    const entityId = r.sourceId || r.id;
+
+    // Target recipients
+    if (r.createdById) {
+      await createNotification({
+        accountId: r.createdById,
+        title,
+        message,
+        type: "reminder",
+        link,
+        priority: "high",
+        entityType,
+        entityId,
+      });
+    }
+
+    if (r.developers.length > 0) {
+      for (const dev of r.developers) {
+        await createNotificationForDeveloper(dev.developerId, {
+          title,
+          message,
+          type: "reminder",
+          link,
+          priority: "high",
+          entityType,
+          entityId,
+        });
+      }
+    } else if (!r.createdById) {
+      // Fallback: Notify Admins & Managers
+      await createNotificationForRoles(["Admin", "Manager"], {
+        title,
+        message,
+        type: "reminder",
+        link,
+        priority: "normal",
+        entityType,
+        entityId,
+      });
+    }
+
+    // Mark as notified
+    await db.reminder.update({
+      where: { id: r.id },
+      data: {
+        notified: true,
+        notifiedAt: new Date(),
+      },
+    });
+
+    notifiedCount++;
+  }
+
+  return { processed: due.length, notified: notifiedCount };
+}
+
+// --------------------------------------------------------------------------------
+// 2. Tasks Due Dates & Overdue Scanner
+// --------------------------------------------------------------------------------
+export async function checkTaskDeadlines() {
+  const curDay = today();
+  const todayDate = toDay(curDay)!;
+  const in3DaysDate = toDay(addDays(curDay, 3))!;
+
+  // Tasks due today or approaching in 3 days, not completed
+  const upcomingTasks = await db.task.findMany({
+    where: {
+      status: { not: "done" },
+      dueDate: { gte: todayDate, lte: in3DaysDate },
+    },
+    include: {
+      assignees: { select: { developerId: true } },
+      project: { select: { id: true, name: true } },
+    },
+    take: 200,
+  });
+
+  // Tasks already overdue
+  const overdueTasks = await db.task.findMany({
+    where: {
+      status: { not: "done" },
+      dueDate: { lt: todayDate },
+    },
+    include: {
+      assignees: { select: { developerId: true } },
+      project: { select: { id: true, name: true } },
+    },
+    take: 200,
+  });
+
+  let createdCount = 0;
+
+  // Process upcoming tasks
+  for (const t of upcomingTasks) {
+    const dueStr = dayStr(t.dueDate);
+    const isDueToday = dueStr === curDay;
+    const title = isDueToday
+      ? `Task #${t.sno} is due today: ${t.title}`
+      : `Task #${t.sno} due on ${fmtDay(dueStr)}: ${t.title}`;
+
+    // Auto-create/upsert Reminder
+    const rem = await db.reminder.upsert({
+      where: {
+        id: (
+          await db.reminder.findFirst({
+            where: { sourceType: "task", sourceId: t.id, date: t.dueDate! },
+            select: { id: true },
+          })
+        )?.id ?? "new-rem-task-" + t.id,
+      },
+      update: {
+        title,
+        taskId: t.id,
+        projectId: t.projectId,
+        ...(isDueToday ? { notified: true, notifiedAt: new Date() } : {}),
+      },
+      create: {
+        title,
+        date: t.dueDate!,
+        time: "09:00",
+        repeat: "none",
+        sourceType: "task",
+        sourceId: t.id,
+        autoGenerated: true,
+        notified: isDueToday,
+        notifiedAt: isDueToday ? new Date() : null,
+        taskId: t.id,
+        projectId: t.projectId,
+        developers: {
+          create: t.assignees.map((a) => ({ developerId: a.developerId })),
+        },
+      },
+    });
+
+    // Notify assignees if due today
+    if (isDueToday) {
+      for (const a of t.assignees) {
+        await createNotificationForDeveloper(a.developerId, {
+          title: `Task #${t.sno} Due Today`,
+          message: `${t.title} [${t.project?.name ?? "General"}]`,
+          type: "task",
+          link: `/tasks?view=${t.id}`,
+          priority: "high",
+          entityType: "task",
+          entityId: t.id,
+        });
+      }
+    }
+
+    createdCount++;
+  }
+
+  // Process overdue tasks (notify once a day)
+  for (const t of overdueTasks) {
+    const title = `Overdue: Task #${t.sno} (${fmtDay(t.dueDate)}) - ${t.title}`;
+    for (const a of t.assignees) {
+      await createNotificationForDeveloper(a.developerId, {
+        title: `Overdue Task #${t.sno}`,
+        message: `${t.title} is past due date ${fmtDay(t.dueDate)}`,
+        type: "task",
+        link: `/tasks?view=${t.id}`,
+        priority: "urgent",
+        entityType: "task",
+        entityId: t.id,
+      });
+    }
+  }
+
+  return { upcoming: upcomingTasks.length, overdue: overdueTasks.length, created: createdCount };
+}
+
+// --------------------------------------------------------------------------------
+// 3. Meeting Alerts & Calendar Scanner
+// --------------------------------------------------------------------------------
+export async function checkMeetingAlerts() {
+  const curDay = today();
+  const curHM = nowHM();
+  const todayDate = toDay(curDay)!;
+
+  // Planned meetings for today
+  const meetings = await db.meeting.findMany({
+    where: {
+      date: todayDate,
+      status: "Planned",
+    },
+    include: {
+      developers: { select: { developerId: true } },
+      createdBy: { select: { id: true, name: true } },
+      project: { select: { name: true } },
+    },
+  });
+
+  const nowMs = Date.now();
+  let alertedCount = 0;
+
+  for (const m of meetings) {
+    const remindMins = m.remindMinutes || 30;
+    const meetingTimeMs = new Date(`${curDay}T${m.startTime || "09:00"}:00`).getTime();
+    const diffMins = (meetingTimeMs - nowMs) / 60000;
+
+    // Approaching meeting window (between 0 and remindMinutes)
+    if (diffMins > 0 && diffMins <= remindMins) {
+      const title = `Meeting in ${Math.round(diffMins)}m: ${m.title}`;
+      const message = `${m.startTime} · ${m.mode || "Online"} · ${m.project?.name ?? ""}`;
+
+      if (m.createdById) {
+        await createNotification({
+          accountId: m.createdById,
+          title,
+          message,
+          type: "meeting",
+          link: `/calendar?view=${m.id}`,
+          priority: "high",
+          entityType: "meeting",
+          entityId: m.id,
+        });
+      }
+
+      for (const d of m.developers) {
+        await createNotificationForDeveloper(d.developerId, {
+          title,
+          message,
+          type: "meeting",
+          link: `/calendar?view=${m.id}`,
+          priority: "high",
+          entityType: "meeting",
+          entityId: m.id,
+        });
+      }
+
+      alertedCount++;
+    }
+
+    // Upsert auto-reminder for the meeting day
+    await db.reminder.upsert({
+      where: {
+        id: (
+          await db.reminder.findFirst({
+            where: { sourceType: "meeting", sourceId: m.id },
+            select: { id: true },
+          })
+        )?.id ?? "new-rem-meet-" + m.id,
+      },
+      update: {
+        title: `Meeting: ${m.title}`,
+        time: m.startTime || "09:00",
+        projectId: m.projectId,
+      },
+      create: {
+        title: `Meeting: ${m.title}`,
+        date: m.date,
+        time: m.startTime || "09:00",
+        repeat: "none",
+        sourceType: "meeting",
+        sourceId: m.id,
+        autoGenerated: true,
+        projectId: m.projectId,
+        note: `${m.mode || ""} ${m.location || ""} - ${m.agenda || ""}`.trim(),
+        developers: {
+          create: m.developers.map((d) => ({ developerId: d.developerId })),
+        },
+      },
+    });
+  }
+
+  return { totalMeetings: meetings.length, alerted: alertedCount };
+}
+
+// --------------------------------------------------------------------------------
+// 4. Milestones & Monthly Rollouts Scanner
+// --------------------------------------------------------------------------------
+export async function checkMilestonesAndRollouts() {
+  const curDay = today();
+  const todayDate = toDay(curDay)!;
+  const in14DaysDate = toDay(addDays(curDay, 14))!;
+  const in30DaysDate = toDay(addDays(curDay, 30))!;
+
+  // Milestones approaching target or overdue
+  const milestones = await db.milestone.findMany({
+    where: {
+      status: { not: "Done" },
+      target: { lte: in14DaysDate },
+    },
+    include: {
+      project: { select: { id: true, name: true } },
+    },
+  });
+
+  // Rollouts targeted for this month or next 30 days
+  const rollouts = await db.rollout.findMany({
+    where: {
+      targetDate: { gte: todayDate, lte: in30DaysDate },
+    },
+    include: {
+      project: { select: { id: true, name: true } },
+      company: { select: { id: true, name: true } },
+    },
+  });
+
+  let processedCount = 0;
+
+  for (const m of milestones) {
+    if (!m.target) continue;
+    const targetStr = dayStr(m.target);
+    const isOverdue = targetStr < curDay;
+    const title = isOverdue
+      ? `Overdue Milestone: ${m.title} [${m.project?.name ?? "General"}]`
+      : `Milestone target approaching: ${m.title} (${fmtDay(targetStr)})`;
+
+    // Upsert auto-reminder
+    await db.reminder.upsert({
+      where: {
+        id: (
+          await db.reminder.findFirst({
+            where: { sourceType: "milestone", sourceId: m.id },
+            select: { id: true },
+          })
+        )?.id ?? "new-rem-ms-" + m.id,
+      },
+      update: {
+        title,
+        date: m.target,
+        projectId: m.projectId,
+      },
+      create: {
+        title,
+        date: m.target,
+        time: "09:00",
+        repeat: "none",
+        sourceType: "milestone",
+        sourceId: m.id,
+        autoGenerated: true,
+        projectId: m.projectId,
+        note: `Owner: ${m.owner || "Unassigned"} · Status: ${m.status}`,
+      },
+    });
+
+    // Notify Admins & Managers
+    await createNotificationForRoles(["Admin", "Manager"], {
+      title,
+      message: `Target: ${fmtDay(targetStr)}. Status: ${m.status}. ${m.note || ""}`,
+      type: "milestone",
+      link: `/plan?tab=milestones&edit=${m.id}`,
+      priority: isOverdue ? "urgent" : "high",
+      entityType: "milestone",
+      entityId: m.id,
+    });
+
+    processedCount++;
+  }
+
+  for (const r of rollouts) {
+    if (!r.targetDate) continue;
+    const targetStr = dayStr(r.targetDate);
+    const title = `Project Go-Live Scheduled: ${r.project.name} at ${r.company.name}`;
+
+    await db.reminder.upsert({
+      where: {
+        id: (
+          await db.reminder.findFirst({
+            where: { sourceType: "rollout", sourceId: r.id },
+            select: { id: true },
+          })
+        )?.id ?? "new-rem-rollout-" + r.id,
+      },
+      update: {
+        title,
+        date: r.targetDate,
+        projectId: r.projectId,
+      },
+      create: {
+        title,
+        date: r.targetDate,
+        time: "09:00",
+        repeat: "none",
+        sourceType: "rollout",
+        sourceId: r.id,
+        autoGenerated: true,
+        projectId: r.projectId,
+        note: `Target Go-Live: ${fmtDay(targetStr)} · Owner: ${r.owner || "Team"}`,
+      },
+    });
+
+    await createNotificationForRoles(["Admin", "Manager"], {
+      title,
+      message: `Target go-live on ${fmtDay(targetStr)}. Progress: ${r.progress ?? 0}%.`,
+      type: "rollout",
+      link: `/overview`,
+      priority: "high",
+      entityType: "rollout",
+      entityId: r.id,
+    });
+
+    processedCount++;
+  }
+
+  return { milestones: milestones.length, rollouts: rollouts.length, processed: processedCount };
+}
+
+// --------------------------------------------------------------------------------
+// 5. Licence Renewals & Expiring Software
+// --------------------------------------------------------------------------------
+export async function checkLicenceRenewals() {
+  const curDay = today();
+  const todayDate = toDay(curDay)!;
+  const in60DaysDate = toDay(addDays(curDay, 60))!;
+
+  // Licences renewing in next 60 days
+  const licences = await db.licence.findMany({
+    where: {
+      renewal: { gte: todayDate, lte: in60DaysDate },
+    },
+    include: {
+      company: { select: { name: true } },
+      project: { select: { name: true } },
+    },
+  });
+
+  let processedCount = 0;
+
+  for (const l of licences) {
+    if (!l.renewal) continue;
+    const renewalStr = dayStr(l.renewal);
+    const daysLeft = Math.ceil(
+      (new Date(renewalStr).getTime() - new Date(curDay).getTime()) / (1000 * 3600 * 24)
+    );
+
+    const title = `Licence Renewal in ${daysLeft}d: ${l.software} (${l.type})`;
+
+    await db.reminder.upsert({
+      where: {
+        id: (
+          await db.reminder.findFirst({
+            where: { sourceType: "licence", sourceId: l.id },
+            select: { id: true },
+          })
+        )?.id ?? "new-rem-lic-" + l.id,
+      },
+      update: {
+        title,
+        date: l.renewal,
+        projectId: l.projectId,
+      },
+      create: {
+        title,
+        date: l.renewal,
+        time: "09:00",
+        repeat: "none",
+        sourceType: "licence",
+        sourceId: l.id,
+        autoGenerated: true,
+        projectId: l.projectId,
+        note: `Quantity: ${l.quantity} · Vendor: ${l.vendor || "N/A"} · Company: ${l.company?.name || "All"}`,
+      },
+    });
+
+    // Notify at key thresholds: 60, 30, 15, 7, 1 days
+    if ([60, 30, 15, 7, 1, 0].includes(daysLeft)) {
+      await createNotificationForRoles(["Admin", "Manager"], {
+        title,
+        message: `Expires on ${fmtDay(renewalStr)}. Vendor: ${l.vendor || "N/A"}. Cost: ${l.cost ? `${l.currency} ${l.cost}` : "N/A"}.`,
+        type: "licence",
+        link: `/licences?view=${l.id}`,
+        priority: daysLeft <= 15 ? "urgent" : "high",
+        entityType: "licence",
+        entityId: l.id,
+      });
+    }
+
+    processedCount++;
+  }
+
+  return { licences: licences.length, processed: processedCount };
+}
+
+// --------------------------------------------------------------------------------
+// 6. HCM Board Daily Standup Compliance
+// --------------------------------------------------------------------------------
+export async function checkStandupCompliance() {
+  const cfg = await getNotifySettings();
+  const curHM = nowHM();
+  const curDay = today();
+  const todayDate = toDay(curDay)!;
+  const dayOfWeek = new Date().getDay();
+
+  // Only run if daily updates are on and today is a configured working day
+  if (!cfg.dailyOn || !cfg.days.includes(dayOfWeek)) {
+    return { skipped: true, reason: "Non-working day or daily updates disabled" };
+  }
+
+  // Check if current time is at or after cutoff
+  if (curHM < cfg.dailyTime) {
+    return { skipped: true, reason: `Before cutoff time (${cfg.dailyTime})` };
+  }
+
+  const [developers, standups] = await Promise.all([
+    db.developer.findMany({ select: { id: true, name: true } }),
+    db.standup.findMany({ where: { date: todayDate }, select: { developerId: true } }),
+  ]);
+
+  const submitted = new Set(standups.map((s) => s.developerId));
+  const missing = developers.filter((d) => !submitted.has(d.id));
+
+  for (const dev of missing) {
+    await createNotificationForDeveloper(dev.id, {
+      title: "Daily Update Reminder",
+      message: `Hi ${dev.name.split(" ")[0]}, please submit today's update on ERAM HCM board.`,
+      type: "standup",
+      link: `/daily`,
+      priority: "high",
+      entityType: "standup",
+      entityId: `standup-${dev.id}-${curDay}`,
+    });
+  }
+
+  if (missing.length > 0) {
+    await createNotificationForRoles(["Admin", "Manager"], {
+      title: `${missing.length} Developers Missing Daily Updates`,
+      message: missing.map((d) => d.name).join(", "),
+      type: "standup",
+      link: `/daily`,
+      priority: "normal",
+      entityType: "standup",
+      entityId: `standup-summary-${curDay}`,
+    });
+  }
+
+  return { totalDevelopers: developers.length, missing: missing.length };
+}
+
+// --------------------------------------------------------------------------------
+// 7. Urgent Issues SLA & Pending Approvals
+// --------------------------------------------------------------------------------
+export async function checkUrgentIssuesAndApprovals() {
+  const cfg = await getNotifySettings();
+  const now = Date.now();
+
+  // Urgent and High issues in open state
+  const openIssues = await db.issue.findMany({
+    where: {
+      status: { notIn: ["resolved", "closed"] },
+      priority: { in: ["Urgent", "High"] },
+    },
+    include: {
+      assignees: { select: { developerId: true } },
+      project: { select: { name: true } },
+    },
+  });
+
+  let slaAlerts = 0;
+  for (const iss of openIssues) {
+    const slaHours = cfg.sla[iss.priority as keyof typeof cfg.sla] ?? (iss.priority === "Urgent" ? 4 : 24);
+    const deadlineMs = iss.createdAt.getTime() + slaHours * 3600 * 1000;
+    const remainingHours = (deadlineMs - now) / (3600 * 1000);
+
+    // Alert if breached or within 25% of SLA deadline
+    if (remainingHours <= slaHours * 0.25) {
+      const isBreached = remainingHours <= 0;
+      const title = isBreached
+        ? `SLA BREACHED: ${iss.priority} Issue ${iss.id}`
+        : `SLA Warning: ${iss.priority} Issue ${iss.id}`;
+
+      const msg = `${isBreached ? "SLA Breached" : `${remainingHours.toFixed(1)}h remaining`} · ${iss.title}${iss.project?.name ? ` [${iss.project.name}]` : ""}`;
+
+      await createNotificationForRoles(["Admin", "Manager"], {
+        title,
+        message: msg,
+        type: "issue",
+        link: `/issues?view=${iss.id}`,
+        priority: "urgent",
+        entityType: "issue",
+        entityId: iss.id,
+      });
+
+      for (const a of iss.assignees) {
+        await createNotificationForDeveloper(a.developerId, {
+          title,
+          message: msg,
+          type: "issue",
+          link: `/issues?view=${iss.id}`,
+          priority: "urgent",
+          entityType: "issue",
+          entityId: iss.id,
+        });
+      }
+
+      slaAlerts++;
+    }
+  }
+
+  // Pending approvals
+  const [pendingTasks, pendingIssues, pendingCRs] = await Promise.all([
+    db.task.count({ where: { approvalState: "pending" } }),
+    db.issue.count({ where: { approvalState: "pending", status: { notIn: ["resolved", "closed"] } } }),
+    db.changeRequest.count({ where: { status: { in: ["Submitted", "Under review"] } } }),
+  ]);
+
+  const totalPending = pendingTasks + pendingIssues + pendingCRs;
+  if (totalPending > 0) {
+    await createNotificationForRoles(["Admin", "Manager"], {
+      title: `${totalPending} Items Waiting for Approval`,
+      message: `${pendingTasks} Tasks, ${pendingIssues} Issues, ${pendingCRs} Change Requests`,
+      type: "approval",
+      link: `/approvals`,
+      priority: "high",
+      entityType: "approval",
+      entityId: `approvals-${today()}`,
+    });
+  }
+
+  return { slaAlerts, pendingApprovals: totalPending };
+}
+
+// --------------------------------------------------------------------------------
+// Master Runner: Run specific or all cron jobs
+// --------------------------------------------------------------------------------
+export async function runCron(job: "minute" | "morning" | "evening" | "monthly" | "all" = "all") {
+  const startedAt = new Date();
+  const results: Record<string, any> = {};
+  let totalProcessed = 0;
+
+  try {
+    if (job === "minute" || job === "all") {
+      results.reminders = await processDueReminders();
+      results.meetings = await checkMeetingAlerts();
+      results.urgentSLA = await checkUrgentIssuesAndApprovals();
+      totalProcessed += (results.reminders?.processed || 0) + (results.meetings?.alerted || 0);
+    }
+
+    if (job === "morning" || job === "all") {
+      results.tasks = await checkTaskDeadlines();
+      results.milestones = await checkMilestonesAndRollouts();
+      results.licences = await checkLicenceRenewals();
+      totalProcessed += (results.tasks?.created || 0) + (results.milestones?.processed || 0) + (results.licences?.processed || 0);
+    }
+
+    if (job === "evening" || job === "all") {
+      results.standups = await checkStandupCompliance();
+      totalProcessed += results.standups?.missing || 0;
+    }
+
+    if (job === "monthly" || job === "all") {
+      results.monthlyRollouts = await checkMilestonesAndRollouts();
+    }
+
+    // Record log
+    await db.cronJobLog.create({
+      data: {
+        jobName: job,
+        startedAt,
+        finishedAt: new Date(),
+        status: "success",
+        processed: totalProcessed,
+        details: results,
+      },
+    });
+
+    return { ok: true, job, totalProcessed, results };
+  } catch (err: any) {
+    await db.cronJobLog.create({
+      data: {
+        jobName: job,
+        startedAt,
+        finishedAt: new Date(),
+        status: "failed",
+        processed: totalProcessed,
+        details: results,
+        error: err.message || String(err),
+      },
+    });
+    return { ok: false, job, error: err.message, results };
+  }
+}

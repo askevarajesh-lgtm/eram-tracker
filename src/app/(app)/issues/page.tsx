@@ -13,12 +13,12 @@ import type { IssueDTO } from "./_components/types";
 
 export const metadata: Metadata = { title: "Urgent issues" };
 
-type Search = { q?: string; st?: string; pr?: string; dev?: string; mod?: string; new?: string; edit?: string; sla?: string };
+type Search = { q?: string; st?: string; pr?: string; dev?: string; mod?: string; new?: string; edit?: string; view?: string; sla?: string };
 
 const include = {
     project: { select: { name: true } },
     company: { select: { name: true } },
-    task: { select: { sno: true } },
+    task: { select: { id: true, sno: true } },
     assignees: { orderBy: { position: "asc" }, include: { developer: { select: { name: true } } } },
     events: { orderBy: { at: "desc" }, take: 40 },
 } satisfies Prisma.IssueInclude;
@@ -49,8 +49,9 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
     const urgent = open.filter(x => x.priority === "Urgent").length;
     const unassigned = open.filter(x => !x._count.assignees).length;
 
-    // an "open by id" link (?edit=TKN-...) must work even when filters hide that issue
-    const extra = sp.edit && !rows.some(r => r.id === sp.edit) ? await db.issue.findUnique({ where: { id: sp.edit }, include }) : null;
+    // an "open by id" link (?view=TKN-... or ?edit=TKN-...) must work even when filters hide that issue
+    const lookupId = sp.view || sp.edit;
+    const extra = lookupId && !rows.some(r => r.id === lookupId) ? await db.issue.findUnique({ where: { id: lookupId }, include }) : null;
 
     const rank = (p: string) => ISSUE_PRIORITIES.findIndex(x => x.key === p);
     const isOpen = (s: string) => (OPEN_STATUSES as string[]).includes(s);
@@ -65,7 +66,7 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
             id: x.id, title: x.title, description: x.description, projectId: x.projectId ?? "", projectName: x.project?.name ?? "",
             priority: x.priority, status: x.status, raisedBy: x.raisedBy, contact: x.contact, companyId: x.companyId ?? "", companyName: x.company?.name ?? "",
             assigneeIds: x.assignees.map(a => a.developerId), assigneeNames: x.assignees.map(a => a.developer.name), resolution: x.resolution,
-            createdAt: x.createdAt.toISOString(), resolvedAt: x.resolvedAt?.toISOString() ?? "", taskSno: x.task?.sno ?? null,
+            createdAt: x.createdAt.toISOString(), resolvedAt: x.resolvedAt?.toISOString() ?? "", taskId: x.task?.id ?? null, taskSno: x.task?.sno ?? null,
             approvalState: x.approvalState, approvalBy: x.approvalBy ?? "", approvalAt: x.approvalAt?.toISOString() ?? "", approvalNote: x.approvalNote ?? "",
             events: x.events.map(e => ({ at: e.at.toISOString(), message: e.message })),
             files: filesOf(x.files),
@@ -95,6 +96,7 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
                     viewer={{ developerId: viewer.developerId, canManage: canManage(viewer), role: viewer.role }}
                     openNew={sp.new === "1"}
                     openId={sp.edit}
+                    openViewId={sp.view}
                     anyIssues={open.length > 0 || rows.length > 0 || (await db.issue.count()) > 0}
                     filtered={filtered}
                     totalOpen={open.length}
