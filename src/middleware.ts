@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server.js";
 
 // Fast check at the edge: no session cookie -> sign-in page. The real check (signature, expiry,
 // suspended account) happens on the server in getViewer() for every page and action.
