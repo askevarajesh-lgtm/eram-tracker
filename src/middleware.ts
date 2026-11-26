@@ -11,6 +11,8 @@ export function middleware(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
+export default middleware;
+
 export const config = {
   // everything except the sign-in page, Next internals, static files, and public/cron APIs
   matcher: ["/((?!login|_next/static|_next/image|favicon.ico|api/health|api/cron).*)"],
