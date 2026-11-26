@@ -46,6 +46,7 @@
     "@types/react-dom": "^19.3.0",
     "better-sqlite3": "^12.11.1",
     "pg": "^8.23.1",
+    "type": "module",
     "prisma": "^6.19.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
