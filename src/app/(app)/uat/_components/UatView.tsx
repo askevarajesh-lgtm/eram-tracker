@@ -41,8 +41,10 @@ export function UatView({ rows, total, signoffs, teams, canManage, people }: Pro
   return (
     <>
       {canManage && (
-        <div className="filters">
-          <span className="muted" style={{ flex: 1 }}>{sel.size ? `${sel.size} selected` : "Select developed items to send for testing or record sign-off."}</span>
+        <div className="uat-action-bar">
+          <span className="muted" style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+            {sel.size ? <span className="uat-sel-pill">{sel.size} selected</span> : "Select developed items to send for testing or record sign-off."}
+          </span>
           <button className="btn" type="button" disabled={!sel.size} onClick={sendForUat}>
             <Send size={14} style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />
             Send for UAT ({sel.size})
@@ -138,14 +140,16 @@ export function UatView({ rows, total, signoffs, teams, canManage, people }: Pro
 
         return (
           <>
-            <AntTable<UatRow>
-              dataSource={rows}
-              columns={uatColumns}
-              rowKey="id"
-              pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
-              emptyTitle="Nothing waiting for sign-off"
-              emptyDescription="Developed items that business users haven't accepted yet appear here."
-            />
+            <div className="uat-table-card">
+              <AntTable<UatRow>
+                dataSource={rows}
+                columns={uatColumns}
+                rowKey="id"
+                pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
+                emptyTitle="Nothing waiting for sign-off"
+                emptyDescription="Developed items that business users haven't accepted yet appear here."
+              />
+            </div>
             {total > rows.length && <p className="muted" style={{ marginTop: 8 }}>Showing {rows.length} of {total}. Filter by project to see the rest.</p>}
           </>
         );

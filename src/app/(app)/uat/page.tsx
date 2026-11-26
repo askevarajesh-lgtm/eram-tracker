@@ -5,9 +5,10 @@ import { requireViewer } from "@/lib/session";
 import { canManage } from "@/lib/permissions";
 import { getLists } from "@/lib/settings";
 import { today } from "@/lib/dates";
-import { Kpi } from "@/components/ui/Kpi";
+import { Clock, FlaskConical, BadgeCheck, RotateCcw } from "lucide-react";
 import { UrlFilters } from "@/components/ui/UrlFilters";
 import { UatView, type UatRow } from "./_components/UatView";
+import "./_components/uat-dashboard.css";
 
 export const metadata: Metadata = { title: "UAT & sign-off" };
 
@@ -47,13 +48,43 @@ export default async function UatPage({ searchParams }: { searchParams: Promise<
     testStatus: t.testStatus, acceptStatus: t.acceptStatus, developers: t.assignees.map(a => a.developer), returned: t.events.length,
   }));
 
+  const signedThisMonth = signoffs.filter(s => (s.d ?? "").startsWith(month)).length;
+
   return (
     <>
-      <div className="kpis">
-        <Kpi n={waiting} label="Waiting for business-user testing" />
-        <Kpi n={testedNotAccepted} label="Tested, not yet accepted" />
-        <Kpi n={signoffs.filter(s => (s.d ?? "").startsWith(month)).length} label="Signed off this month" />
-        <Kpi n={returned} label="Sent back for changes" />
+      <div className="uat-kpi-grid">
+        <div className="uat-kpi-card" style={{ ["--kpi-c" as string]: "var(--accent)", ["--kpi-bg" as string]: "var(--accent-soft)" }}>
+          <span className="uat-kpi-icon"><Clock size={22} /></span>
+          <div className="uat-kpi-body">
+            <div className="uat-kpi-val">{waiting}</div>
+            <div className="uat-kpi-label">Waiting for testing</div>
+            <div className="uat-kpi-sub">Ready for business-user UAT</div>
+          </div>
+        </div>
+        <div className="uat-kpi-card" style={{ ["--kpi-c" as string]: "var(--info)", ["--kpi-bg" as string]: "rgba(37,99,235,0.14)" }}>
+          <span className="uat-kpi-icon"><FlaskConical size={22} /></span>
+          <div className="uat-kpi-body">
+            <div className="uat-kpi-val">{testedNotAccepted}</div>
+            <div className="uat-kpi-label">Tested, not accepted</div>
+            <div className="uat-kpi-sub">Awaiting final sign-off</div>
+          </div>
+        </div>
+        <div className="uat-kpi-card" style={{ ["--kpi-c" as string]: "var(--ok)", ["--kpi-bg" as string]: "rgba(21,146,74,0.14)" }}>
+          <span className="uat-kpi-icon"><BadgeCheck size={22} /></span>
+          <div className="uat-kpi-body">
+            <div className="uat-kpi-val">{signedThisMonth}</div>
+            <div className="uat-kpi-label">Signed off this month</div>
+            <div className="uat-kpi-sub">Accepted by business users</div>
+          </div>
+        </div>
+        <div className="uat-kpi-card" style={{ ["--kpi-c" as string]: returned > 0 ? "var(--warn)" : "var(--hold)", ["--kpi-bg" as string]: returned > 0 ? "rgba(199,116,8,0.14)" : "var(--sunk)" }}>
+          <span className="uat-kpi-icon"><RotateCcw size={22} /></span>
+          <div className="uat-kpi-body">
+            <div className="uat-kpi-val">{returned}</div>
+            <div className="uat-kpi-label">Sent back for changes</div>
+            <div className="uat-kpi-sub">{returned > 0 ? "Returned to development" : "No rejections"}</div>
+          </div>
+        </div>
       </div>
       <div style={{ marginTop: 18 }}>
         <UrlFilters search={{ placeholder: "Search item, module, business users…" }} selects={[{ key: "mod", all: "All projects", options: projects.map(p => [p.id, p.name]) }]} />

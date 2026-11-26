@@ -9,8 +9,11 @@ import { MILESTONE_COLOR, milestoneStatus } from "@/lib/plan";
 import { AItem, Empty, SegLinks } from "@/components/ui/bits";
 import { Chip } from "@/components/ui/Chip";
 import { EntityEditor, type FieldDef } from "@/components/ui/EntityEditor";
+import { RecordActions } from "@/components/ui/RecordActions";
+import { toast } from "@/components/ui/Toaster";
 import { useUrlUpdate } from "@/components/ui/useUrl";
 import { AntSelect, AntInput, AntCheckbox, AntTable, type ColumnsType } from "@/components/ui/antd";
+import { PlanDetailModal, type ViewingPlanItem } from "./PlanDetailModal";
 
 type Milestone = { id: string; title: string; projectId: string; target: string; status: string; doneOn: string; owner: string; note: string };
 type Change = { id: string; title: string; description: string; projectId: string; subModule: string; requestedBy: string; companyId: string; priority: string; effort: string; status: string; decisionBy: string; decidedAt: string; taskId: string; taskSno: number | null };
@@ -35,6 +38,7 @@ const NEW_LABEL = { milestones: "Milestone", changes: "Change request", releases
 
 export function PlanView({ tab, data, projects, companies, canManage, canEdit, openId, openNew }: Props) {
   const { update } = useUrlUpdate();
+  const [viewing, setViewing] = useState<ViewingPlanItem | null>(null);
   const projName = (id: string) => projects.find(p => p.id === id)?.name ?? "";
   const tag = (id: string) => id ? <span className="mtag" style={{ ["--mc" as string]: projectColor(projName(id)) }}>{projName(id)}</span> : <>—</>;
   const close = () => update({ edit: null, new: null });
@@ -198,6 +202,31 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               key: "note",
               className: "muted",
             },
+            {
+              title: "Actions",
+              key: "actions",
+              align: "right" as const,
+              width: 110,
+              render: (_: unknown, m: Milestone) => (
+                <RecordActions
+                  onView={() => setViewing({ kind: "milestone", item: m })}
+                  onEdit={canManage ? () => open(m.id) : undefined}
+                  onDelete={
+                    canManage
+                      ? async () => {
+                          const r = await deletePlanItem("milestone", m.id);
+                          if (!r.ok) toast(r.error ?? "Failed to delete milestone");
+                          else toast("Milestone deleted");
+                        }
+                      : undefined
+                  }
+                  deleteConfirmTitle={`Delete milestone "${m.title}"?`}
+                  deleteConfirmMessage="Are you sure you want to delete this milestone? This action cannot be undone."
+                  canEdit={canManage}
+                  canDelete={canManage}
+                />
+              ),
+            },
           ];
 
           return (
@@ -207,7 +236,7 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
                 dataSource={L}
                 columns={milestoneColumns}
                 rowKey="id"
-                onRowClick={m => open(m.id)}
+                onRowClick={m => setViewing({ kind: "milestone", item: m })}
                 pagination={false}
               />
             </section>
@@ -269,6 +298,31 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
                 </div>
               ),
             },
+            {
+              title: "Actions",
+              key: "actions",
+              align: "right" as const,
+              width: 110,
+              render: (_: unknown, c: Change) => (
+                <RecordActions
+                  onView={() => setViewing({ kind: "change", item: c })}
+                  onEdit={canManage ? () => open(c.id) : undefined}
+                  onDelete={
+                    canManage
+                      ? async () => {
+                          const r = await deletePlanItem("change", c.id);
+                          if (!r.ok) toast(r.error ?? "Failed to delete change request");
+                          else toast(`Change request ${c.id} deleted`);
+                        }
+                      : undefined
+                  }
+                  deleteConfirmTitle={`Delete ${c.id}?`}
+                  deleteConfirmMessage={`Are you sure you want to delete change request ${c.id} "${c.title}"? This action cannot be undone.`}
+                  canEdit={canManage}
+                  canDelete={canManage}
+                />
+              ),
+            },
           ];
 
           return (
@@ -276,7 +330,7 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               dataSource={data.changes}
               columns={changeColumns}
               rowKey="id"
-              onRowClick={c => open(c.id)}
+              onRowClick={c => setViewing({ kind: "change", item: c })}
               pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
               emptyTitle="No change requests"
               emptyDescription="Submit change requests to track feature scope and approvals."
@@ -291,10 +345,31 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
             {data.releases.map(r => {
               const c = r.status === "Released" ? "var(--ok)" : "var(--info)";
               return (
-                <AItem key={r.id} color={c} onClick={() => open(r.id)}
+                <AItem key={r.id} color={c} onClick={() => setViewing({ kind: "release", item: r })}
                   title={<><span className="mono">{r.version}</span> · {projName(r.projectId)} · {r.taskIds.length} items</>}
                   sub={<>{r.status} · {fmtDay(r.date)}{r.notes && " · " + r.notes.slice(0, 100)}</>}
-                  right={<Chip color={c}>{r.status}</Chip>} />
+                  right={
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }} onClick={e => e.stopPropagation()}>
+                      <Chip color={c}>{r.status}</Chip>
+                      <RecordActions
+                        onView={() => setViewing({ kind: "release", item: r })}
+                        onEdit={canManage ? () => open(r.id) : undefined}
+                        onDelete={
+                          canManage
+                            ? async () => {
+                                const res = await deletePlanItem("release", r.id);
+                                if (!res.ok) toast(res.error ?? "Failed to delete release");
+                                else toast(`Release ${r.version} deleted`);
+                              }
+                            : undefined
+                        }
+                        deleteConfirmTitle={`Delete release ${r.version}?`}
+                        deleteConfirmMessage={`Are you sure you want to delete release ${r.version}? This action cannot be undone.`}
+                        canEdit={canManage}
+                        canDelete={canManage}
+                      />
+                    </div>
+                  } />
               );
             })}
           </div>
@@ -353,6 +428,31 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               key: "mitigation",
               className: "muted",
             },
+            {
+              title: "Actions",
+              key: "actions",
+              align: "right" as const,
+              width: 110,
+              render: (_: unknown, r: Risk) => (
+                <RecordActions
+                  onView={() => setViewing({ kind: "risk", item: r })}
+                  onEdit={canManage ? () => open(r.id) : undefined}
+                  onDelete={
+                    canManage
+                      ? async () => {
+                          const res = await deletePlanItem("risk", r.id);
+                          if (!res.ok) toast(res.error ?? "Failed to delete item");
+                          else toast(`${r.type} deleted`);
+                        }
+                      : undefined
+                  }
+                  deleteConfirmTitle={`Delete ${r.type.toLowerCase()} "${r.title}"?`}
+                  deleteConfirmMessage="Are you sure you want to delete this item? This action cannot be undone."
+                  canEdit={canManage}
+                  canDelete={canManage}
+                />
+              ),
+            },
           ];
 
           return (
@@ -360,13 +460,27 @@ export function PlanView({ tab, data, projects, companies, canManage, canEdit, o
               dataSource={data.risks}
               columns={riskColumns}
               rowKey="id"
-              onRowClick={r => open(r.id)}
+              onRowClick={r => setViewing({ kind: "risk", item: r })}
               pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
               emptyTitle="No risks or dependencies"
               emptyDescription="Record delivery risks, assumptions or dependency items."
             />
           );
         })())}
+      {viewing && (
+        <PlanDetailModal
+          viewing={viewing}
+          projects={projects}
+          companies={companies}
+          canManage={canManage}
+          onEdit={() => {
+            const id = viewing.item.id;
+            setViewing(null);
+            open(id);
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
       {editor}
     </>
   );

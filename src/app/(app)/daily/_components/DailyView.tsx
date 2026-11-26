@@ -1,19 +1,65 @@
 "use client";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import {
+  Download,
+  Rocket,
+  RefreshCw,
+  Layers,
+  Clock,
+  PlayCircle,
+  PauseCircle,
+  Sparkles,
+  CheckCircle2,
+  CalendarCheck,
+  AlertTriangle,
+  Flame,
+} from "lucide-react";
 import type { TaskStatus } from "@prisma/client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { saveDailyNote, saveRollout } from "@/server/daily";
 import { PRIORITY_COLOR, STATUS_MAP, projectColor } from "@/lib/constants";
 import { fmtDay, today } from "@/lib/dates";
 import { addDays } from "@/lib/work";
 import { AItem, Empty, StatusChip } from "@/components/ui/bits";
 import { Chip } from "@/components/ui/Chip";
-import { Kpi } from "@/components/ui/Kpi";
 import { Panel } from "@/components/ui/Panel";
 import { toast } from "@/components/ui/Toaster";
 import { useUrlUpdate } from "@/components/ui/useUrl";
 import { AntDatePicker, AntTimePicker, AntSelect, AntInput, AntTextArea, AntTable, type ColumnsType } from "@/components/ui/antd";
+import "./daily-dashboard.css";
+
+function DailyKpiCard({
+  label,
+  value,
+  sub,
+  icon,
+  color = "var(--accent)",
+  bg = "var(--accent-soft)",
+  bad = false,
+}: {
+  label: string;
+  value: number;
+  sub: string;
+  icon: ReactNode;
+  color?: string;
+  bg?: string;
+  bad?: boolean;
+}) {
+  const style = {
+    ["--kpi-c" as string]: bad ? "var(--bad)" : color,
+    ["--kpi-bg" as string]: bad ? "rgba(211,47,47,0.12)" : bg,
+  };
+  return (
+    <div className={`dly-kpi-card${bad ? " is-bad" : ""}`} style={style}>
+      <div className="dly-kpi-top">
+        <span className="dly-kpi-label">{label}</span>
+        <span className="dly-kpi-icon">{icon}</span>
+      </div>
+      <div className="dly-kpi-val">{value}</div>
+      <div className="dly-kpi-sub">{sub}</div>
+    </div>
+  );
+}
 
 type Row = { id: string; ref: string; subModule: string; title: string; notes: string; owner: string; status: TaskStatus; priority: string; progress: number; due: string; doneOn: string; created: string };
 type Rollout = { companyId: string; projectId: string; status: string; progress: number | null; startDate: string; targetDate: string; actualDate: string; owner: string; branches: string; notes: string; log: { d: string; from: string; to: string }[] };
@@ -78,7 +124,22 @@ export function DailyView({ data, canEdit, canManage }: { data: DailyData; canEd
         {canEdit && <Link className="btn primary" href={`/tasks?new=1${data.P !== "_all" ? "&project=" + data.P : ""}`}>+ New item</Link>}
       </div>
 
-      <p className="eyebrow">{data.holdingName || "Group"} · software implementation by company</p>
+      <p className="eyebrow">{pname} · development &amp; implementation items · {new Date(D + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}{isToday ? " · today" : ""}</p>
+      <div className="dly-kpi-grid">
+        <DailyKpiCard label="Company systems live" value={kpis.live} sub="Active deployments" icon={<Rocket size={16} />} color="var(--ok)" bg="rgba(21,146,74,0.12)" />
+        <DailyKpiCard label="Implementing / UAT" value={kpis.implementing} sub="In rollout pipeline" icon={<Layers size={16} />} color="var(--info)" bg="rgba(37,99,235,0.12)" />
+        <DailyKpiCard label="Rollout changes today" value={kpis.rolloutToday} sub="Status updates" icon={<RefreshCw size={16} />} />
+        <DailyKpiCard label={isToday ? "Open items now" : "Open at day end"} value={kpis.open} sub="Active backlog" icon={<Flame size={16} />} />
+        <DailyKpiCard label="Not started" value={kpis.notStarted} sub="Queued items" icon={<Clock size={16} />} color="var(--muted)" bg="var(--sunk)" />
+        <DailyKpiCard label="In progress / testing" value={kpis.inProgress} sub="Being worked on" icon={<PlayCircle size={16} />} color="var(--info)" bg="rgba(37,99,235,0.12)" />
+        <DailyKpiCard label="On hold / blocked" value={kpis.hold} sub={kpis.hold > 0 ? "Needs unblocking" : "No blockers"} icon={<PauseCircle size={16} />} bad={kpis.hold > 0} color="var(--warn)" bg="rgba(199,116,8,0.12)" />
+        <DailyKpiCard label="New today" value={kpis.newToday} sub="Created on this day" icon={<Sparkles size={16} />} color="var(--info)" bg="rgba(37,99,235,0.12)" />
+        <DailyKpiCard label="Completed today" value={kpis.doneToday} sub="Finished items" icon={<CheckCircle2 size={16} />} color="var(--ok)" bg="rgba(21,146,74,0.12)" />
+        <DailyKpiCard label="Due today" value={kpis.dueToday} sub={kpis.dueToday > 0 ? "Target date today" : "None due today"} icon={<CalendarCheck size={16} />} bad={kpis.dueToday > 0} color="var(--warn)" bg="rgba(199,116,8,0.12)" />
+        <DailyKpiCard label="Overdue" value={kpis.overdue} sub={kpis.overdue > 0 ? "Past due date" : "On schedule"} icon={<AlertTriangle size={16} />} bad={kpis.overdue > 0} color="var(--bad)" bg="rgba(211,47,47,0.12)" />
+      </div>
+
+      <p className="eyebrow" style={{ marginTop: 28 }}>{data.holdingName || "Group"} · software implementation by company</p>
       {!data.companies.length ? <Empty title="No group companies">Add the companies under the holding in the Admin dashboard first.</Empty> : (() => {
         const rolloutColumns: ColumnsType<DailyData["companies"][number]> = [
           {
@@ -128,12 +189,12 @@ export function DailyView({ data, canEdit, canManage }: { data: DailyData; canEd
 
         return (
           <>
-            <div className="tablewrap">
+            <div className="dly-table-card">
               <AntTable
                 dataSource={data.companies}
                 columns={rolloutColumns}
                 rowKey="id"
-                pagination={false}
+                pagination={{ pageSize: 10 }}
                 summary={() => data.holdingName ? (
                   <AntTable.Summary.Row style={{ background: "var(--sunk)" }}>
                     <AntTable.Summary.Cell index={0} colSpan={2}>
@@ -154,15 +215,7 @@ export function DailyView({ data, canEdit, canManage }: { data: DailyData; canEd
         );
       })()}
 
-      <p className="eyebrow" style={{ marginTop: 28 }}>{pname} · development &amp; implementation items · {new Date(D + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}{isToday ? " · today" : ""}</p>
-      <div className="kpis">
-        <Kpi n={kpis.live} label="Company systems live" /><Kpi n={kpis.implementing} label="Implementing / UAT" /><Kpi n={kpis.rolloutToday} label="Rollout changes today" />
-        <Kpi n={kpis.open} label={isToday ? "Open items now" : "Open at day end"} /><Kpi n={kpis.notStarted} label="Not started" /><Kpi n={kpis.inProgress} label="In progress / testing" />
-        <Kpi n={kpis.hold} label="On hold / blocked" bad={kpis.hold > 0} /><Kpi n={kpis.newToday} label="New today" /><Kpi n={kpis.doneToday} label="Completed today" />
-        <Kpi n={kpis.dueToday} label="Due today" bad={kpis.dueToday > 0} /><Kpi n={kpis.overdue} label="Overdue" bad={kpis.overdue > 0} />
-      </div>
-
-      {data.total > 0 && <Trend trend={data.trend} />}
+      {data.total > 0 && <Trend trend={data.trend} kpis={kpis} />}
 
       <div className="two">
         <div>
@@ -201,33 +254,107 @@ export function DailyView({ data, canEdit, canManage }: { data: DailyData; canEd
   );
 }
 
-function Trend({ trend }: { trend: DailyData["trend"] }) {
+function Trend({ trend, kpis }: { trend: DailyData["trend"]; kpis: DailyData["kpis"] }) {
+  const [hover, setHover] = useState<number | null>(null);
   const mx = Math.max(1, ...trend.map(r => r.open)), mc = Math.max(1, ...trend.map(r => Math.max(r.done, r.created)));
   const W = 700, H = 150, bw = W / 14;
   const last = trend[13];
+  const linePts = trend.map((r, x) => `${x * bw + bw / 2},${H - (r.open / mx) * H * 0.92}`).join(" ");
+  const areaPts = `${linePts} ${13 * bw + bw / 2},${H} ${bw / 2},${H}`;
+
+  const totalStatus = Math.max(1, kpis.notStarted + kpis.inProgress + kpis.hold + kpis.doneToday);
+  const activePct = Math.round(((kpis.inProgress + kpis.doneToday) / totalStatus) * 100);
+  const r = 50;
+  const c = 2 * Math.PI * r;
+  const dash = (activePct / 100) * c;
+
   return (
-    <>
-      <h2 className="sec">Last 14 days</h2>
-      <div className="tablewrap" style={{ padding: 12 }}>
-        <svg viewBox={`0 0 ${W} ${H + 34}`} style={{ width: "100%", minWidth: 520, display: "block" }} role="img" aria-label="Open items, new and completed per day for the last 14 days">
-          {[0, 0.5, 1].map(t => <line key={t} x1={0} x2={W} y1={H - t * H} y2={H - t * H} stroke="var(--line)" />)}
-          {trend.map((r, x) => {
-            const cx = x * bw, ch = (r.done / mc) * H * 0.55, nh = (r.created / mc) * H * 0.55;
-            return (
-              <g key={r.d}>
-                <rect x={cx + bw * 0.18} y={H - nh} width={bw * 0.3} height={nh} fill="var(--info)" opacity={0.75}><title>{`${r.d}: ${r.created} new`}</title></rect>
-                <rect x={cx + bw * 0.52} y={H - ch} width={bw * 0.3} height={ch} fill="var(--ok)"><title>{`${r.d}: ${r.done} completed`}</title></rect>
-                <text x={cx + bw / 2} y={H + 16} textAnchor="middle" fontSize={10} fill="var(--muted)" fontFamily="var(--mono)">{r.d.slice(8)}</text>
-              </g>
-            );
-          })}
-          <polyline fill="none" stroke="var(--accent)" strokeWidth={2} points={trend.map((r, x) => `${x * bw + bw / 2},${H - (r.open / mx) * H * 0.95}`).join(" ")} />
-          {trend.map((r, x) => <circle key={r.d} cx={x * bw + bw / 2} cy={H - (r.open / mx) * H * 0.95} r={x === 13 ? 4 : 2.5} fill="var(--accent)"><title>{`${r.d}: ${r.open} open`}</title></circle>)}
-          <text x={13 * bw + bw / 2} y={H - (last.open / mx) * H * 0.95 - 9} textAnchor="end" fontSize={11} fontWeight={600} fill="var(--accent)" fontFamily="var(--mono)">{last.open} open</text>
-        </svg>
-        <div className="legend" style={{ marginTop: 6 }}><span><i className="dot" style={{ background: "var(--accent)" }} />Open at day end</span><span><i className="dot" style={{ background: "var(--info)" }} />New</span><span><i className="dot" style={{ background: "var(--ok)" }} />Completed</span></div>
+    <div className="dly-charts-grid">
+      <div className="dly-card">
+        <div className="dly-card-head">
+          <div>
+            <h3 className="dly-card-title">Last 14 days</h3>
+            <p className="dly-card-sub">Open items trend vs. daily new &amp; completed</p>
+          </div>
+          <div className="dly-legend">
+            <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--accent)" }} />Open</span>
+            <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--info)" }} />New</span>
+            <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--ok)" }} />Completed</span>
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <svg viewBox={`0 0 ${W} ${H + 34}`} style={{ width: "100%", display: "block" }} role="img" aria-label="Open items, new and completed per day for the last 14 days">
+            <defs>
+              <linearGradient id="dlyOpenGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.01" />
+              </linearGradient>
+            </defs>
+            {[0, 0.5, 1].map(t => <line key={t} x1={0} x2={W} y1={H - t * H} y2={H - t * H} stroke="var(--line)" strokeDasharray="3 3" />)}
+            <polygon points={areaPts} fill="url(#dlyOpenGrad)" />
+            {trend.map((r, x) => {
+              const cx = x * bw, ch = (r.done / mc) * H * 0.52, nh = (r.created / mc) * H * 0.52;
+              return (
+                <g key={r.d} onMouseEnter={() => setHover(x)} onMouseLeave={() => setHover(null)} style={{ cursor: "pointer" }}>
+                  <rect x={cx} y={0} width={bw} height={H + 24} fill="transparent" />
+                  <rect x={cx + bw * 0.2} y={H - nh} width={bw * 0.28} height={nh} rx={2} fill="var(--info)" opacity={hover === x ? 0.95 : 0.72} />
+                  <rect x={cx + bw * 0.52} y={H - ch} width={bw * 0.28} height={ch} rx={2} fill="var(--ok)" opacity={hover === x ? 1 : 0.85} />
+                  <text x={cx + bw / 2} y={H + 18} textAnchor="middle" fontSize={10.5} fontWeight={hover === x ? 700 : 500} fill={hover === x ? "var(--fg)" : "var(--muted)"} fontFamily="var(--mono)">{r.d.slice(8)}</text>
+                </g>
+              );
+            })}
+            <polyline fill="none" stroke="var(--accent)" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" points={linePts} />
+            {trend.map((r, x) => (
+              <circle key={r.d} cx={x * bw + bw / 2} cy={H - (r.open / mx) * H * 0.92} r={hover === x || x === 13 ? 4.5 : 3} fill="var(--surface)" stroke="var(--accent)" strokeWidth={2.2} />
+            ))}
+            <text x={13 * bw + bw / 2} y={H - (last.open / mx) * H * 0.92 - 9} textAnchor="end" fontSize={11} fontWeight={700} fill="var(--accent)" fontFamily="var(--mono)">{last.open} open</text>
+          </svg>
+          {hover !== null && trend[hover] && (
+            <div style={{ position: "absolute", top: 4, left: 8, background: "var(--surface)", border: "1px solid var(--line2)", borderRadius: 8, padding: "6px 10px", fontSize: 11.5, boxShadow: "var(--sh)", pointerEvents: "none" }}>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{fmtDay(trend[hover].d)}</div>
+              <div style={{ color: "var(--accent)" }}>Open: <b>{trend[hover].open}</b></div>
+              <div style={{ color: "var(--info)" }}>New: <b>{trend[hover].created}</b></div>
+              <div style={{ color: "var(--ok)" }}>Completed: <b>{trend[hover].done}</b></div>
+            </div>
+          )}
+        </div>
       </div>
-    </>
+
+      <div className="dly-card">
+        <div className="dly-card-head">
+          <div>
+            <h3 className="dly-card-title">Workload breakdown</h3>
+            <p className="dly-card-sub">Current item status distribution</p>
+          </div>
+        </div>
+        <div className="dly-donut-wrap">
+          <svg width="128" height="128" viewBox="0 0 128 128" style={{ flexShrink: 0 }}>
+            <circle cx="64" cy="64" r={r} fill="none" stroke="var(--sunk)" strokeWidth="14" />
+            <circle cx="64" cy="64" r={r} fill="none" stroke="var(--accent)" strokeWidth="14" strokeDasharray={`${dash} ${c}`} strokeLinecap="round" transform="rotate(-90 64 64)" />
+            <text x="64" y="61" textAnchor="middle" fontSize="20" fontWeight="700" fill="var(--fg)">{kpis.open}</text>
+            <text x="64" y="78" textAnchor="middle" fontSize="10.5" fill="var(--muted)">open items</text>
+          </svg>
+          <div className="dly-donut-stats">
+            <div className="dly-stat-row">
+              <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--info)" }} />In progress / QA</span>
+              <strong>{kpis.inProgress}</strong>
+            </div>
+            <div className="dly-stat-row">
+              <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--muted)" }} />Not started</span>
+              <strong>{kpis.notStarted}</strong>
+            </div>
+            <div className="dly-stat-row">
+              <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--warn)" }} />On hold / blocked</span>
+              <strong style={{ color: kpis.hold > 0 ? "var(--warn)" : undefined }}>{kpis.hold}</strong>
+            </div>
+            <div className="dly-stat-row">
+              <span className="dly-legend-item"><span className="dly-legend-dot" style={{ background: "var(--ok)" }} />Completed today</span>
+              <strong style={{ color: "var(--ok)" }}>{kpis.doneToday}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -324,12 +451,12 @@ function ItemTable({ title, rows, D, extra }: { title: string; rows: Row[]; D: s
   return (
     <>
       <h2 className="sec">{title} <span className="mono muted" style={{ fontSize: 14 }}>{rows.length}</span></h2>
-      <div className="tablewrap">
+      <div className="dly-table-card">
         <AntTable
           dataSource={rows}
           columns={columns}
           rowKey="id"
-          pagination={rows.length > 10 ? { defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] } : false}
+          pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ["10", "20", "50", "100"] }}
           emptyText={`No ${title.toLowerCase()} items`}
         />
       </div>

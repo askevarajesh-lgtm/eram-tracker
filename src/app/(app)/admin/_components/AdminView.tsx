@@ -11,6 +11,7 @@ import {
   CalendarClock,
   Code2,
   ArrowUpRight,
+  LayoutDashboard,
 } from "lucide-react";
 import { AntTable, type ColumnsType } from "@/components/ui/antd";
 import type { LicencePool } from "@/server/queries";
@@ -19,6 +20,9 @@ import { projectColor } from "@/lib/constants";
 import { fmtDay } from "@/lib/dates";
 import { AItem, Empty } from "@/components/ui/bits";
 import { EntityEditor, type FieldDef } from "@/components/ui/EntityEditor";
+import { RecordActions } from "@/components/ui/RecordActions";
+import { toast } from "@/components/ui/Toaster";
+import { CompanyDetailModal } from "./CompanyDetailModal";
 import { Summary, Utilisation } from "@/components/shared/licences/LicenceWidgets";
 import { CompanyBarChart, LicenceDonutChart, TrendLineChart, type TrendPoint } from "./AdminCharts";
 import "./admin-dashboard.css";
@@ -87,7 +91,9 @@ function KpiCard({
 }
 
 export function AdminView({ data, canManage }: { data: AdminData; canManage: boolean }) {
+  const [tab, setTab] = useState<"dashboard" | "companies">("dashboard");
   const [edit, setEdit] = useState<Company | "new" | null>(null);
+  const [viewing, setViewing] = useState<Company | null>(null);
   const { kpis } = data;
   const subs = data.companies.filter(c => !c.holding);
   const software = [...new Set(data.pools.map(p => p.software))];
@@ -97,11 +103,37 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
   return (
     <>
       <div className="adm-head">
+        <div className="adm-tabs" role="tablist" aria-label="Admin sections">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "dashboard"}
+            className={`adm-tab${tab === "dashboard" ? " is-active" : ""}`}
+            onClick={() => setTab("dashboard")}
+          >
+            <LayoutDashboard size={15} />
+            Dashboard
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "companies"}
+            className={`adm-tab${tab === "companies" ? " is-active" : ""}`}
+            onClick={() => setTab("companies")}
+          >
+            <Building2 size={15} />
+            Companies &amp; branches
+            <span className="adm-tab-count">{subs.length}</span>
+          </button>
+        </div>
         <p className="adm-eyebrow">
           <span className="adm-eyebrow-dot" />
           Group administration · as of {fmtDay(data.asOf)}
         </p>
       </div>
+
+      {tab === "dashboard" && (
+        <>
 
       <div className="adm-kpi-grid">
         <KpiCard label="Group companies" value={kpis.companies} sub="Active subsidiaries" icon={<Building2 size={17} />} />
@@ -143,14 +175,26 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
         </div>
       )}
 
-      <div className="grouph" style={{ marginTop: 28 }}>
-        <h2 className="sec" style={{ margin: 0, flex: 1 }}>Group companies &amp; branches</h2>
-        {canManage && <button className="btn primary" type="button" onClick={() => setEdit("new")}>+ Add company</button>}
-      </div>
+      <h2 className="sec">Needs attention</h2>
+      {!data.attention.length ? <Empty title="Nothing flagged">Over-allocated licences, renewals, inactive people and data mismatches appear here.</Empty> : (
+        <div className="alist">{data.attention.map((a, i) => <AItem key={i} color={a.color} href={a.href} title={<span style={{ whiteSpace: "normal" }}>{a.title}</span>} sub={a.sub} right={<span className="muted" aria-hidden="true">›</span>} />)}</div>
+      )}
+        </>
+      )}
+
+      {tab === "companies" && (
+        <>
+          <div className="grouph" style={{ marginTop: 8 }}>
+            <h2 className="sec" style={{ margin: 0, flex: 1 }}>Group companies &amp; branches</h2>
+            {canManage && <button className="btn primary" type="button" onClick={() => setEdit("new")}>+ Add company</button>}
+          </div>
       {data.holding && (
         <div className="banner" style={{ marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span><b>{data.holding.name}</b> is the holding company: {subs.length} companies in {kpis.countries} countries.</span>
-          {canManage && <button className="btn" type="button" onClick={() => setEdit(data.companies.find(c => c.id === data.holding!.id)!)}>Edit holding</button>}
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className="btn" type="button" onClick={() => setViewing(data.companies.find(c => c.id === data.holding!.id)!)}>View holding</button>
+            {canManage && <button className="btn" type="button" onClick={() => setEdit(data.companies.find(c => c.id === data.holding!.id)!)}>Edit holding</button>}
+          </div>
         </div>
       )}
       {(() => {
@@ -210,20 +254,34 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
             className: "num",
             render: (devItems: number) => devItems ? <span className="adm-badge-num adm-badge-warn">{devItems}</span> : <span className="muted">0</span>,
           },
-          ...(canManage
-            ? [
-                {
-                  title: "",
-                  key: "action",
-                  align: "right" as const,
-                  render: (_: unknown, c: Company) => (
-                    <button className="btn" type="button" onClick={() => setEdit(c)}>
-                      Edit
-                    </button>
-                  ),
-                },
-              ]
-            : []),
+          {
+            title: "Actions",
+            key: "actions",
+            align: "right" as const,
+            width: 110,
+            render: (_: unknown, c: Company) => (
+              <RecordActions
+                onView={() => setViewing(c)}
+                onEdit={canManage ? () => setEdit(c) : undefined}
+                onDelete={
+                  canManage
+                    ? async () => {
+                        const res = await deleteCompany(c.id);
+                        if (!res.ok) {
+                          toast(res.error ?? "Failed to delete company");
+                        } else {
+                          toast(`Company ${c.name} deleted`);
+                        }
+                      }
+                    : undefined
+                }
+                deleteConfirmTitle={`Delete company ${c.name}?`}
+                deleteConfirmMessage={`Are you sure you want to delete ${c.name}? Tasks, people, and licences linked to it will remain, without a company.`}
+                canEdit={canManage}
+                canDelete={canManage}
+              />
+            ),
+          },
         ];
 
         return (
@@ -232,6 +290,7 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
               dataSource={subs}
               columns={companyColumns}
               rowKey="id"
+              onRowClick={c => setViewing(c)}
               pagination={false}
               emptyTitle="No companies yet"
               emptyDescription="Add each group company with its country and branches."
@@ -241,9 +300,21 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
         );
       })()}
 
-      <h2 className="sec">Needs attention</h2>
-      {!data.attention.length ? <Empty title="Nothing flagged">Over-allocated licences, renewals, inactive people and data mismatches appear here.</Empty> : (
-        <div className="alist">{data.attention.map((a, i) => <AItem key={i} color={a.color} href={a.href} title={<span style={{ whiteSpace: "normal" }}>{a.title}</span>} sub={a.sub} right={<span className="muted" aria-hidden="true">›</span>} />)}</div>
+      {viewing && (
+        <CompanyDetailModal
+          company={viewing}
+          parentName={data.companies.find(x => x.id === viewing.parentId)?.name}
+          projects={data.projects}
+          canManage={canManage}
+          onEdit={() => {
+            const c = viewing;
+            setViewing(null);
+            setEdit(c);
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
+        </>
       )}
 
       {edit && (
