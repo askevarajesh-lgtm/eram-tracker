@@ -1,0 +1,299 @@
+/* Admin Dashboard Redesign — Theme-aware KPI cards, Charts, and Table */
+
+.adm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.adm-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
+.adm-eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Unique KPI Grid */
+.adm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .adm-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .adm-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm-kpi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--rl);
+  box-shadow: var(--sh);
+  text-decoration: none;
+  color: var(--fg);
+  overflow: hidden;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.adm-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--kpi-c, var(--accent));
+  opacity: 0.9;
+}
+
+a.adm-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--kpi-c, var(--accent));
+  box-shadow: 0 8px 22px rgba(15, 26, 42, 0.08);
+}
+
+.adm-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adm-kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.adm-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--kpi-bg, var(--accent-soft));
+  color: var(--kpi-c, var(--accent));
+  flex-shrink: 0;
+}
+
+.adm-kpi-mid {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.adm-kpi-val {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-kpi-card.is-bad .adm-kpi-val {
+  color: var(--bad);
+}
+
+.adm-kpi-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.adm-kpi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--kpi-bg, var(--accent-soft));
+  color: var(--kpi-c, var(--accent));
+}
+
+/* Charts Section */
+.adm-charts-grid {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+@media (max-width: 980px) {
+  .adm-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--rl);
+  box-shadow: var(--sh);
+  padding: 18px 20px;
+  min-width: 0;
+}
+
+.adm-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.adm-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.adm-card-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.adm-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.adm-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adm-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* Donut + Breakdown */
+.adm-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.adm-donut-stats {
+  flex: 1;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--sunk);
+  font-size: 12.5px;
+}
+
+.adm-stat-row strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
+}
+
+/* Themed Table Wrapper */
+.adm-table-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--rl);
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+
+.adm-table-card .ant-table-wrapper .ant-table {
+  background: transparent;
+}
+
+.adm-table-card .ant-table-thead > tr > th {
+  background: var(--accent-soft) !important;
+  color: var(--fg) !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--line2) !important;
+}
+
+.adm-table-card .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--line) !important;
+  transition: background 0.15s ease;
+}
+
+.adm-table-card .ant-table-tbody > tr:hover > td {
+  background: var(--accent-soft) !important;
+}
+
+.adm-badge-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.adm-badge-warn {
+  background: rgba(199, 116, 8, 0.14);
+  color: var(--warn);
+}

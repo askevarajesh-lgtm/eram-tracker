@@ -1,26 +1,90 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  Building2,
+  Globe2,
+  Users,
+  KeyRound,
+  UserCheck,
+  CheckCircle2,
+  CalendarClock,
+  Code2,
+  ArrowUpRight,
+} from "lucide-react";
 import { AntTable, type ColumnsType } from "@/components/ui/antd";
 import type { LicencePool } from "@/server/queries";
 import { deleteCompany, saveCompany } from "@/server/companies";
 import { projectColor } from "@/lib/constants";
 import { fmtDay } from "@/lib/dates";
 import { AItem, Empty } from "@/components/ui/bits";
-import { Kpi } from "@/components/ui/Kpi";
 import { EntityEditor, type FieldDef } from "@/components/ui/EntityEditor";
 import { Summary, Utilisation } from "@/components/shared/licences/LicenceWidgets";
+import { CompanyBarChart, LicenceDonutChart, TrendLineChart, type TrendPoint } from "./AdminCharts";
+import "./admin-dashboard.css";
 
 type Company = { id: string; name: string; country: string; code: string; sapDb: string; branches: string[]; notes: string; holding: boolean; parentId: string; users: number; licencesHeld: number; access: Record<string, number>; devItems: number };
 export type AdminData = {
   asOf: string;
   kpis: { companies: number; countries: number; activeUsers: number; purchased: number; assigned: number; available: number; renewals: number; openDev: number };
+  trend: TrendPoint[];
   pools: LicencePool[];
   holding: { id: string; name: string } | null;
   companies: Company[];
   projects: { id: string; name: string }[];
   attention: { color: string; title: string; sub: string; href: string }[];
 };
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon,
+  href,
+  color = "var(--accent)",
+  bg = "var(--accent-soft)",
+  bad = false,
+}: {
+  label: string;
+  value: number;
+  sub: string;
+  icon: ReactNode;
+  href?: string;
+  color?: string;
+  bg?: string;
+  bad?: boolean;
+}) {
+  const content = (
+    <>
+      <div className="adm-kpi-top">
+        <span className="adm-kpi-label">{label}</span>
+        <span className="adm-kpi-icon" style={{ ["--kpi-c" as string]: color, ["--kpi-bg" as string]: bg }}>
+          {icon}
+        </span>
+      </div>
+      <div className="adm-kpi-mid">
+        <span className="adm-kpi-val">{value}</span>
+        {href && <ArrowUpRight size={15} style={{ color: "var(--muted)" }} />}
+      </div>
+      <div className="adm-kpi-sub">
+        <span>{sub}</span>
+      </div>
+    </>
+  );
+  const style = { ["--kpi-c" as string]: bad ? "var(--bad)" : color, ["--kpi-bg" as string]: bad ? "rgba(211,47,47,0.12)" : bg };
+  if (href) {
+    return (
+      <Link href={href} className={`adm-kpi-card${bad ? " is-bad" : ""}`} style={style}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <div className={`adm-kpi-card${bad ? " is-bad" : ""}`} style={style}>
+      {content}
+    </div>
+  );
+}
 
 export function AdminView({ data, canManage }: { data: AdminData; canManage: boolean }) {
   const [edit, setEdit] = useState<Company | "new" | null>(null);
@@ -32,12 +96,30 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
 
   return (
     <>
-      <p className="eyebrow">Group administration · as of {fmtDay(data.asOf)}</p>
-      <div className="kpis">
-        <Kpi n={kpis.companies} label="Group companies" /><Kpi n={kpis.countries} label="Countries" /><Kpi n={kpis.activeUsers} label="Active business users" href="/users" />
-        <Kpi n={kpis.purchased} label="Licences purchased" href="/licences" /><Kpi n={kpis.assigned} label="Licences assigned" /><Kpi n={kpis.available} label="Licences available" bad={kpis.available < 0} />
-        <Kpi n={kpis.renewals} label="Renewals ≤ 60 days" bad={kpis.renewals > 0} /><Kpi n={kpis.openDev} label="Open dev items" href="/tasks" />
+      <div className="adm-head">
+        <p className="adm-eyebrow">
+          <span className="adm-eyebrow-dot" />
+          Group administration · as of {fmtDay(data.asOf)}
+        </p>
       </div>
+
+      <div className="adm-kpi-grid">
+        <KpiCard label="Group companies" value={kpis.companies} sub="Active subsidiaries" icon={<Building2 size={17} />} />
+        <KpiCard label="Countries" value={kpis.countries} sub="Operating regions" icon={<Globe2 size={17} />} color="var(--info)" bg="rgba(37,99,235,0.12)" />
+        <KpiCard label="Active business users" value={kpis.activeUsers} sub="View users & access" icon={<Users size={17} />} href="/users" />
+        <KpiCard label="Licences purchased" value={kpis.purchased} sub="Total seat capacity" icon={<KeyRound size={17} />} href="/licences" color="var(--info)" bg="rgba(37,99,235,0.12)" />
+        <KpiCard label="Licences assigned" value={kpis.assigned} sub="Currently allocated" icon={<UserCheck size={17} />} color="var(--ok)" bg="rgba(21,146,74,0.12)" />
+        <KpiCard label="Licences available" value={kpis.available} sub={kpis.available < 0 ? "Over-allocated" : "Ready to assign"} icon={<CheckCircle2 size={17} />} bad={kpis.available < 0} color="var(--ok)" bg="rgba(21,146,74,0.12)" />
+        <KpiCard label="Renewals ≤ 60 days" value={kpis.renewals} sub={kpis.renewals > 0 ? "Action required" : "All up to date"} icon={<CalendarClock size={17} />} bad={kpis.renewals > 0} color="var(--warn)" bg="rgba(199,116,8,0.12)" />
+        <KpiCard label="Open dev items" value={kpis.openDev} sub="View task board" icon={<Code2 size={17} />} href="/tasks" color="var(--lms)" bg="rgba(109,85,196,0.12)" />
+      </div>
+
+      <div className="adm-charts-grid">
+        <TrendLineChart data={data.trend} />
+        <LicenceDonutChart purchased={kpis.purchased} assigned={kpis.assigned} available={kpis.available} renewals={kpis.renewals} />
+      </div>
+
+      <CompanyBarChart companies={subs} />
 
       <div className="grouph" style={{ marginTop: 28 }}>
         <h2 className="sec" style={{ margin: 0, flex: 1 }}>Licence position <span className="muted" style={{ font: "500 12px var(--body)" }}>business-user licences count business users only</span></h2>
@@ -103,7 +185,7 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
             align: "right" as const,
             className: "num",
             render: (users: number, c: Company) =>
-              users ? <Link href={`/users?comp=${c.id}`}>{users}</Link> : <span className="muted">0</span>,
+              users ? <Link href={`/users?comp=${c.id}`} className="adm-badge-num">{users}</Link> : <span className="muted">0</span>,
           },
           {
             title: "Licences held",
@@ -111,7 +193,7 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
             key: "licencesHeld",
             align: "right" as const,
             className: "num",
-            render: (licencesHeld: number) => licencesHeld || <span className="muted">0</span>,
+            render: (licencesHeld: number) => licencesHeld ? <span className="adm-badge-num">{licencesHeld}</span> : <span className="muted">0</span>,
           },
           ...data.projects.map(p => ({
             title: <span className="mtag" style={{ ["--mc" as string]: projectColor(p.name) }}>{p.name}</span>,
@@ -126,7 +208,7 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
             key: "devItems",
             align: "right" as const,
             className: "num",
-            render: (devItems: number) => devItems || <span className="muted">0</span>,
+            render: (devItems: number) => devItems ? <span className="adm-badge-num adm-badge-warn">{devItems}</span> : <span className="muted">0</span>,
           },
           ...(canManage
             ? [
@@ -145,15 +227,17 @@ export function AdminView({ data, canManage }: { data: AdminData; canManage: boo
         ];
 
         return (
-          <AntTable<Company>
-            dataSource={subs}
-            columns={companyColumns}
-            rowKey="id"
-            pagination={false}
-            emptyTitle="No companies yet"
-            emptyDescription="Add each group company with its country and branches."
-            emptyAction={canManage ? <button className="btn primary" type="button" onClick={() => setEdit("new")}>+ Add company</button> : undefined}
-          />
+          <div className="adm-table-card">
+            <AntTable<Company>
+              dataSource={subs}
+              columns={companyColumns}
+              rowKey="id"
+              pagination={false}
+              emptyTitle="No companies yet"
+              emptyDescription="Add each group company with its country and branches."
+              emptyAction={canManage ? <button className="btn primary" type="button" onClick={() => setEdit("new")}>+ Add company</button> : undefined}
+            />
+          </div>
         );
       })()}
 

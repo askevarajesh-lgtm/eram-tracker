@@ -11,12 +11,13 @@ export const metadata: Metadata = { title: "Admin dashboard" };
 
 export default async function AdminDashboardPage() {
   const viewer = await requireViewer();
-  const [companies, projects, records, pools, openTasks] = await Promise.all([
+  const [companies, projects, records, pools, openTasks, recentTasks] = await Promise.all([
     db.company.findMany({ orderBy: [{ country: "asc" }, { sortOrder: "asc" }, { name: "asc" }] }),
     db.project.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     db.accessRecord.findMany({ include: { appAccess: true, licences: { include: { licence: { select: { projectId: true } } } } } }),
     licencePools(),
     db.task.groupBy({ by: ["companyId"], where: { status: { not: "done" } }, _count: true }),
+    db.task.findMany({ select: { createdAt: true, status: true, updatedAt: true } }),
   ]);
   const holding = companies.find(c => c.holding) ?? null;
   const subs = companies.filter(c => !c.holding);
@@ -35,12 +36,24 @@ export default async function AdminDashboardPage() {
   const noLic = records.filter(r => isBusinessUser(r.userType) && r.appAccess.some(a => licensed.has(a.projectId) && !r.licences.some(l => l.licence.projectId === a.projectId)));
   if (noLic.length) att.push({ color: "var(--warn)", title: `${noLic.length} ${noLic.length === 1 ? "person has" : "people have"} access but no licence`, sub: "They can use a licensed system without a licence assigned", href: "/users" });
 
+  const now = new Date();
+  const trend = Array.from({ length: 6 }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const label = d.toLocaleString("en-US", { month: "short" });
+    const opened = recentTasks.filter(t => t.createdAt.getFullYear() === y && t.createdAt.getMonth() === m).length;
+    const completed = recentTasks.filter(t => t.status === "done" && t.updatedAt.getFullYear() === y && t.updatedAt.getMonth() === m).length;
+    return { month: label, opened, completed };
+  });
+
   const data: AdminData = {
     asOf: today(),
     kpis: {
       companies: subs.length, countries: new Set(subs.map(c => c.country).filter(Boolean)).size, activeUsers: records.filter(r => r.status !== "Inactive").length,
       purchased, assigned, available: purchased - assigned, renewals: due.length, openDev: openTasks.reduce((a, g) => a + g._count, 0),
     },
+    trend,
     pools,
     holding: holding ? { id: holding.id, name: holding.name } : null,
     companies: companies.map(c => ({
