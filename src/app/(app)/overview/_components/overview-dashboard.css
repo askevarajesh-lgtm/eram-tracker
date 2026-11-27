@@ -1,0 +1,934 @@
+/* ==========================================================================
+   DEVELOPMENT OVERVIEW — EXECUTIVE PORTFOLIO DASHBOARD & PAGINATED TABLES
+   Theme-aware across both light & dark modes via CSS design tokens.
+   ========================================================================== */
+
+.ov-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   1. Top Portfolio Command Strip
+   -------------------------------------------------------------------------- */
+.ov-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--sh);
+}
+
+.ov-topbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ov-eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.ov-eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  flex-shrink: 0;
+}
+
+.ov-health-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--sunk);
+  color: var(--muted);
+  text-decoration: none;
+  cursor: default;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+button.ov-health-pill {
+  cursor: pointer;
+}
+
+button.ov-health-pill:hover {
+  transform: translateY(-1px);
+}
+
+.ov-health-pill.is-ok {
+  background: color-mix(in srgb, var(--ok) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--ok) 28%, transparent);
+  color: var(--ok);
+}
+
+.ov-health-pill.is-bad {
+  background: color-mix(in srgb, var(--bad) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--bad) 32%, transparent);
+  color: var(--bad);
+}
+
+.ov-meta-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ov-topbar-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ov-quick-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.ov-quick-link:hover {
+  background: var(--sunk);
+  border-color: var(--line2);
+  transform: translateY(-1px);
+}
+
+.ov-quick-link.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.ov-quick-link.is-primary:hover {
+  filter: brightness(1.07);
+}
+
+/* --------------------------------------------------------------------------
+   2. New Bento KPI Cards Grid (4 columns: 4 on Row 1, 1 + 1 + 2 on Row 2)
+   -------------------------------------------------------------------------- */
+.ov-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1180px) {
+  .ov-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .ov-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ov-kpi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px 14px;
+  border-radius: 16px;
+  background:
+    radial-gradient(110% 85% at 100% 0%, color-mix(in srgb, var(--kpi-c, var(--accent)) 9%, transparent), transparent 62%),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 18%, var(--line));
+  box-shadow: var(--sh);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  min-width: 0;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+/* Top luminous hairline accent */
+.ov-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--kpi-c, var(--accent)) 0%, color-mix(in srgb, var(--kpi-c, var(--accent)) 28%, transparent) 100%);
+  opacity: 0.92;
+}
+
+.ov-kpi-card.is-interactive {
+  cursor: pointer;
+}
+
+.ov-kpi-card.is-interactive:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--kpi-c, var(--accent)) 45%, var(--line));
+  box-shadow: 0 10px 24px -6px rgba(15, 26, 42, 0.1);
+}
+
+.ov-kpi-card.is-active {
+  border-color: var(--kpi-c, var(--accent)) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kpi-c, var(--accent)) 28%, transparent), 0 10px 24px -6px rgba(15, 26, 42, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+.ov-kpi-card.is-bad {
+  background:
+    radial-gradient(110% 85% at 100% 0%, color-mix(in srgb, var(--bad) 12%, transparent), transparent 62%),
+    color-mix(in srgb, var(--bad) 4%, var(--surface));
+  border-color: color-mix(in srgb, var(--bad) 32%, var(--line));
+}
+
+.ov-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ov-kpi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--kpi-c, var(--accent)) 12%, var(--surface));
+  color: var(--kpi-c, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 20%, transparent);
+  white-space: nowrap;
+}
+
+.ov-kpi-tag-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--kpi-c, var(--accent));
+}
+
+.ov-kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--kpi-c, var(--accent)) 18%, var(--surface)) 0%,
+    color-mix(in srgb, var(--kpi-c, var(--accent)) 7%, var(--surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 26%, transparent);
+  color: var(--kpi-c, var(--accent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kpi-c, var(--accent)) 12%, transparent);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.ov-kpi-card.is-interactive:hover .ov-kpi-icon {
+  transform: scale(1.06);
+}
+
+.ov-kpi-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ov-kpi-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ov-kpi-val {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-kpi-card.is-bad .ov-kpi-val {
+  color: var(--bad);
+}
+
+.ov-kpi-share {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--sunk);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.ov-kpi-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.25;
+}
+
+.ov-kpi-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.ov-kpi-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.ov-kpi-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.ov-kpi-track > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kpi-c, var(--accent));
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ov-kpi-foot-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.ov-kpi-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  color: var(--kpi-c, var(--accent));
+  white-space: nowrap;
+}
+
+/* Featured 2-Column Hero Progress Card */
+.ov-kpi-hero {
+  grid-column: span 2;
+  background:
+    radial-gradient(90% 100% at 100% 0%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 65%),
+    radial-gradient(70% 80% at 0% 100%, color-mix(in srgb, var(--ok) 6%, transparent), transparent 65%),
+    var(--surface);
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+}
+
+@media (max-width: 600px) {
+  .ov-kpi-hero {
+    grid-column: span 1;
+  }
+}
+
+.ov-hero-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.ov-hero-metric {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ov-ring-wrap {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+}
+
+.ov-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.ov-hero-stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  gap: 6px;
+  flex: 1 1 250px;
+}
+
+@media (max-width: 480px) {
+  .ov-hero-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ov-stage-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ov-stage-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ov-stage-left span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-stage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ov-stage-pill b {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+/* --------------------------------------------------------------------------
+   3. Section Headers & Projects Portfolio
+   -------------------------------------------------------------------------- */
+.ov-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ov-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ov-sec-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ov-sec-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  flex-shrink: 0;
+}
+
+.ov-sec-title {
+  margin: 0;
+  font: 700 16px/1.2 var(--display);
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+
+.ov-count-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sunk);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.ov-proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.ov-proj-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ov-proj-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--mc, var(--accent));
+}
+
+.ov-proj-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--mc, var(--accent)) 45%, var(--line));
+  box-shadow: 0 10px 24px -8px rgba(15, 26, 42, 0.12);
+}
+
+.ov-proj-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ov-proj-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ov-proj-pct {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mc, var(--accent)) 13%, transparent);
+  color: var(--mc, var(--accent));
+  white-space: nowrap;
+}
+
+.ov-proj-full {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--fg);
+  margin-top: 4px;
+}
+
+.ov-proj-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.ov-proj-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* Modern Empty Card */
+.ov-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 34px 20px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1.5px dashed var(--line2);
+  box-shadow: var(--sh);
+}
+
+.ov-empty-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.ov-empty-card h3 {
+  margin: 0;
+  font: 700 16px var(--display);
+  color: var(--fg);
+}
+
+.ov-empty-card p {
+  margin: 0;
+  max-width: 440px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------------------------
+   4. Unified Table Cards & Pagination Polish
+   -------------------------------------------------------------------------- */
+.ov-table-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+
+.ov-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 45%, var(--surface));
+}
+
+.ov-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ov-card-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.ov-card-head-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ov-table-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.ov-search-wrap {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.ov-filter-select {
+  min-width: 155px;
+}
+
+/* Remove nested border/shadow inside .ov-table-card */
+.ov-table-card .crm-table-wrapper {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  background: transparent !important;
+}
+
+.ov-table-card .ant-table-wrapper {
+  border-radius: 0 !important;
+}
+
+.ov-table-card .ant-table-pagination {
+  padding: 12px 18px !important;
+  border-top: 1px solid var(--line) !important;
+  background: color-mix(in srgb, var(--sunk) 35%, var(--surface)) !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ov-table-card .ant-pagination-total-text {
+  margin-inline-end: auto !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  color: var(--muted) !important;
+}
+
+/* Task reference badge */
+.ov-ref-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+/* Developer avatar stack */
+.ov-dev-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ov-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. Bottom Two-Column Split (Developer Workload + Needs Attention)
+   -------------------------------------------------------------------------- */
+.ov-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1060px) {
+  .ov-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ov-attn-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-attn-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-attn-item {
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px 12px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.14s ease;
+}
+
+.ov-attn-item:last-child {
+  border-bottom: none;
+}
+
+.ov-attn-item:hover {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+.ov-attn-stripe {
+  align-self: stretch;
+  background: var(--c, var(--warn));
+  border-radius: 0 4px 4px 0;
+}
+
+.ov-attn-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-attn-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.ov-attn-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 40px 20px;
+}
+
+.ov-attn-empty-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
+  margin-bottom: 4px;
+}
+
+.ov-attn-empty b {
+  font: 700 14.5px var(--display);
+  color: var(--fg);
+}
+
+.ov-attn-empty span {
+  font-size: 12.5px;
+  color: var(--muted);
+  max-width: 300px;
+}
+
+.ov-attn-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 35%, var(--surface));
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ov-pager-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ov-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.ov-pager-btn:hover:not(:disabled) {
+  background: var(--sunk);
+  border-color: var(--line2);
+}
+
+.ov-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

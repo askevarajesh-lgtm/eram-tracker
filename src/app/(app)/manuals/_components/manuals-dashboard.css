@@ -1,0 +1,502 @@
+/* ==========================================================================
+   USER MANUALS — DOCUMENTATION HUB, KPI CARDS & PAGINATED TABLES
+   Theme-aware across both light & dark modes via CSS design tokens.
+   ========================================================================== */
+
+.mn-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   1. Collapsible Built-in Guide Banner
+   -------------------------------------------------------------------------- */
+.mn-guide-card {
+  position: relative;
+  background:
+    radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius: 14px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+
+.mn-guide-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 30%, transparent) 100%);
+}
+
+.mn-guide-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 13px 18px;
+  user-select: none;
+  transition: background 0.14s ease;
+}
+
+.mn-guide-summary::-webkit-details-marker {
+  display: none;
+}
+
+.mn-guide-summary:hover {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.mn-guide-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mn-guide-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  flex-shrink: 0;
+}
+
+.mn-guide-title {
+  font: 700 14.5px var(--display);
+  color: var(--fg);
+}
+
+.mn-guide-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mn-guide-chev {
+  transition: transform 0.18s ease;
+  color: var(--muted);
+}
+
+.mn-guide-card[open] .mn-guide-chev {
+  transform: rotate(180deg);
+}
+
+.mn-guide-body {
+  padding: 4px 18px 18px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 35%, var(--surface));
+}
+
+.mn-guide-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 820px) {
+  .mn-guide-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mn-guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--fg);
+}
+
+.mn-guide-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   2. New Documentation Hub KPI Cards Grid (3x2 Balanced Grid)
+   -------------------------------------------------------------------------- */
+.mn-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1150px) {
+  .mn-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .mn-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mn-kpi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 14px;
+  border-radius: 16px;
+  background:
+    radial-gradient(110% 85% at 100% 0%, color-mix(in srgb, var(--kpi-c, var(--accent)) 9%, transparent), transparent 62%),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 18%, var(--line));
+  box-shadow: var(--sh);
+  color: var(--fg);
+  overflow: hidden;
+  min-width: 0;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.mn-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--kpi-c, var(--accent)) 0%, color-mix(in srgb, var(--kpi-c, var(--accent)) 28%, transparent) 100%);
+}
+
+.mn-kpi-card.is-interactive {
+  cursor: pointer;
+}
+
+.mn-kpi-card.is-interactive:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--kpi-c, var(--accent)) 45%, var(--line));
+  box-shadow: 0 10px 24px -6px rgba(15, 26, 42, 0.1);
+}
+
+.mn-kpi-card.is-active {
+  border-color: var(--kpi-c, var(--accent)) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kpi-c, var(--accent)) 28%, transparent), 0 10px 24px -6px rgba(15, 26, 42, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+.mn-kpi-card.is-bad {
+  background:
+    radial-gradient(110% 85% at 100% 0%, color-mix(in srgb, var(--bad) 12%, transparent), transparent 62%),
+    color-mix(in srgb, var(--bad) 4%, var(--surface));
+  border-color: color-mix(in srgb, var(--bad) 34%, var(--line));
+}
+
+.mn-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mn-kpi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--kpi-c, var(--accent)) 12%, var(--surface));
+  color: var(--kpi-c, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 20%, transparent);
+  white-space: nowrap;
+}
+
+.mn-kpi-tag-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--kpi-c, var(--accent));
+}
+
+.mn-kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--kpi-c, var(--accent)) 18%, var(--surface)) 0%,
+    color-mix(in srgb, var(--kpi-c, var(--accent)) 7%, var(--surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 26%, transparent);
+  color: var(--kpi-c, var(--accent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kpi-c, var(--accent)) 12%, transparent);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.mn-kpi-card.is-interactive:hover .mn-kpi-icon {
+  transform: scale(1.06);
+}
+
+.mn-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mn-kpi-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mn-kpi-val {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.mn-kpi-card.is-bad .mn-kpi-val {
+  color: var(--bad);
+}
+
+.mn-kpi-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sunk);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.mn-kpi-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.25;
+}
+
+.mn-kpi-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.mn-kpi-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+
+.mn-kpi-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.mn-kpi-track > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kpi-c, var(--accent));
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mn-kpi-foot-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.mn-kpi-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  color: var(--kpi-c, var(--accent));
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   3. Unified Table Cards, Toolbar & Pagination Alignment
+   -------------------------------------------------------------------------- */
+.mn-table-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+
+.mn-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 45%, var(--surface));
+}
+
+.mn-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mn-sec-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  flex-shrink: 0;
+}
+
+.mn-sec-title {
+  margin: 0;
+  font: 700 16px/1.2 var(--display);
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+
+.mn-count-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sunk);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.mn-card-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.mn-card-head-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mn-toolbar {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.mn-toolbar .filters {
+  margin-bottom: 0 !important;
+}
+
+/* Seamless integration of AntTable inside .mn-table-card */
+.mn-table-card .crm-table-wrapper {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  background: transparent !important;
+}
+
+.mn-table-card .ant-table-wrapper {
+  border-radius: 0 !important;
+}
+
+.mn-table-card .ant-table-pagination {
+  padding: 12px 18px !important;
+  border-top: 1px solid var(--line) !important;
+  background: color-mix(in srgb, var(--sunk) 35%, var(--surface)) !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.mn-table-card .ant-pagination-total-text {
+  margin-inline-end: auto !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  color: var(--muted) !important;
+}
+
+.mn-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line2);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.mn-action-link:hover {
+  background: var(--sunk);
+  border-color: var(--accent);
+  color: var(--accent);
+}

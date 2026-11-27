@@ -1,0 +1,551 @@
+/* ==========================================================================
+   WORK ON HAND — TEAM CAPACITY & WORKLOAD DASHBOARD
+   Theme-aware across both light & dark modes via CSS design tokens.
+   ========================================================================== */
+
+.wl-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   1. New Capacity Pulse KPI Cards Grid (3x2 Balanced Grid)
+   -------------------------------------------------------------------------- */
+.wl-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1150px) {
+  .wl-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .wl-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wl-kpi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 14px 22px;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, var(--surface) 58%, color-mix(in srgb, var(--kpi-c, var(--accent)) 8%, var(--surface)) 100%);
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 20%, var(--line));
+  box-shadow: var(--sh);
+  color: var(--fg);
+  overflow: hidden;
+  min-width: 0;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+/* Left inset vertical accent pill */
+.wl-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--kpi-c, var(--accent));
+}
+
+.wl-kpi-card.is-interactive {
+  cursor: pointer;
+}
+
+.wl-kpi-card.is-interactive:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--kpi-c, var(--accent)) 48%, var(--line));
+  box-shadow: 0 10px 24px -6px rgba(15, 26, 42, 0.1);
+}
+
+.wl-kpi-card.is-active {
+  border-color: var(--kpi-c, var(--accent)) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kpi-c, var(--accent)) 28%, transparent), 0 10px 24px -6px rgba(15, 26, 42, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+.wl-kpi-card.is-bad {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--bad) 4%, var(--surface)) 55%, color-mix(in srgb, var(--bad) 11%, var(--surface)) 100%);
+  border-color: color-mix(in srgb, var(--bad) 34%, var(--line));
+}
+
+.wl-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wl-kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--kpi-c, var(--accent)) 12%, var(--surface));
+  color: var(--kpi-c, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 22%, transparent);
+  white-space: nowrap;
+}
+
+.wl-kpi-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--kpi-c, var(--accent));
+}
+
+.wl-kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--kpi-c, var(--accent)) 14%, var(--surface));
+  color: var(--kpi-c, var(--accent));
+  border: 1.5px solid color-mix(in srgb, var(--kpi-c, var(--accent)) 28%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kpi-c, var(--accent)) 7%, transparent);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.wl-kpi-card.is-interactive:hover .wl-kpi-icon {
+  transform: scale(1.06);
+}
+
+.wl-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wl-kpi-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wl-kpi-val {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.wl-kpi-card.is-bad .wl-kpi-val {
+  color: var(--bad);
+}
+
+.wl-kpi-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sunk);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.wl-kpi-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.25;
+}
+
+.wl-kpi-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.wl-kpi-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+
+.wl-kpi-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.wl-kpi-track > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kpi-c, var(--accent));
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wl-kpi-foot-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.wl-kpi-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  color: var(--kpi-c, var(--accent));
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   2. Unified Table Cards & Pagination Alignment
+   -------------------------------------------------------------------------- */
+.wl-table-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+
+.wl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 45%, var(--surface));
+}
+
+.wl-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wl-sec-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  flex-shrink: 0;
+}
+
+.wl-sec-title {
+  margin: 0;
+  font: 700 16px/1.2 var(--display);
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+
+.wl-count-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sunk);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.wl-card-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.wl-card-head-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wl-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.wl-search-wrap {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.wl-filter-select {
+  min-width: 155px;
+}
+
+/* Seamless integration of AntTable inside .wl-table-card */
+.wl-table-card .crm-table-wrapper {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  background: transparent !important;
+}
+
+.wl-table-card .ant-table-wrapper {
+  border-radius: 0 !important;
+}
+
+.wl-table-card .ant-table-pagination {
+  padding: 12px 18px !important;
+  border-top: 1px solid var(--line) !important;
+  background: color-mix(in srgb, var(--sunk) 35%, var(--surface)) !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.wl-table-card .ant-pagination-total-text {
+  margin-inline-end: auto !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  color: var(--muted) !important;
+}
+
+.wl-table-foot-note {
+  padding: 10px 18px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 25%, var(--surface));
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Avatar & Reference Pills */
+.wl-dev-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.wl-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--accent) 20%, var(--surface)) 0%,
+    color-mix(in srgb, var(--accent) 8%, var(--surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wl-ref-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.wl-ref-pill.is-issue {
+  background: color-mix(in srgb, var(--bad) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--bad) 26%, transparent);
+  color: var(--bad);
+}
+
+/* --------------------------------------------------------------------------
+   3. Developer Board Cards (Work on Hand by Developer)
+   -------------------------------------------------------------------------- */
+.wl-board-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wl-board-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wl-dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.wl-dev-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--sh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.wl-dev-card:hover {
+  border-color: var(--line2);
+  box-shadow: 0 8px 20px -6px rgba(15, 26, 42, 0.08);
+}
+
+.wl-dev-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sunk) 45%, var(--surface));
+}
+
+.wl-dev-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.wl-dev-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: var(--sunk);
+}
+
+.wl-dev-stat b {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.wl-dev-stat span {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.wl-dev-card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.wl-dev-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 12px;
+  border-radius: 10px;
+  background: var(--sunk);
+  border: 1px dashed var(--line2);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.wl-pager-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.wl-pager-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wl-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.wl-pager-btn:hover:not(:disabled) {
+  background: var(--sunk);
+  border-color: var(--line2);
+}
+
+.wl-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

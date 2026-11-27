@@ -43,12 +43,16 @@ export async function saveManual(raw: ManualInput): Promise<ActionResult<{ id: s
 export async function deleteManual(id: string): Promise<ActionResult> {
   const viewer = await requireViewer();
   if (!canManage(viewer)) return fail("Only admins and managers can delete manuals.");
-  await db.$transaction(async tx => {
-    const m = await tx.manual.delete({ where: { id } });
-    const ids = (Array.isArray(m.files) ? m.files : []).map(f => (f as { id?: string })?.id).filter((x): x is string => !!x);
+  const deleted = await db.$transaction(async tx => {
+    const existing = await tx.manual.findUnique({ where: { id }, select: { id: true, title: true, files: true } });
+    if (!existing) return null;
+    await tx.manual.delete({ where: { id } });
+    const ids = (Array.isArray(existing.files) ? existing.files : []).map(f => (f as { id?: string })?.id).filter((x): x is string => !!x);
     if (ids.length) await tx.asset.deleteMany({ where: { id: { in: ids } } });
-    await audit(tx, viewer, "delete", "manual", id, m.title);
+    await audit(tx, viewer, "delete", "manual", id, existing.title);
+    return existing;
   });
+  if (!deleted) return fail("Manual not found or already deleted.");
   revalidatePath("/", "layout");
   return { ok: true };
 }

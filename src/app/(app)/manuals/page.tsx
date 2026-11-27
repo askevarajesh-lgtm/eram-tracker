@@ -11,7 +11,7 @@ import { ManualsView, type ManualDTO, type CoverageRow } from "./_components/Man
 
 export const metadata: Metadata = { title: "User manuals" };
 
-type Search = { q?: string; mod?: string; st?: string; lv?: string; edit?: string; new?: string; for?: string };
+type Search = { q?: string; mod?: string; st?: string; lv?: string; edit?: string; view?: string; new?: string; for?: string };
 
 export default async function ManualsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const viewer = await requireViewer();
@@ -45,12 +45,30 @@ export default async function ManualsPage({ searchParams }: { searchParams: Prom
   });
   let editing = sp.edit ? manuals.find(m => m.id === sp.edit) : undefined;
   if (sp.edit && !editing) editing = (await db.manual.findUnique({ where: { id: sp.edit } })) ?? undefined;
+  let viewing = sp.view ? manuals.find(m => m.id === sp.view) : undefined;
+  if (sp.view && !viewing) viewing = (await db.manual.findUnique({ where: { id: sp.view } })) ?? undefined;
   return (
     <ManualsView
-      manuals={manuals.map(dto)} counts={{ total: all.length, published: all.filter(m => m.status === "Published").length, draft: all.filter(m => m.status === "Draft" || m.status === "In review").length, outdated: all.filter(m => m.status === "Outdated").length }}
-      coverage={coverage} projects={projects} developers={developers} modules={lists.funcModules} level={sp.lv ?? ""}
-      editing={editing ? dto(editing) : null} openNew={sp.new === "1"} preset={sp.for ?? ""}
-      canEdit={canEdit(viewer)} canManage={canManage(viewer)}
+      manuals={manuals.map(dto)}
+      counts={{
+        total: all.length,
+        published: all.filter(m => m.status === "Published").length,
+        draft: all.filter(m => m.status === "Draft" || m.status === "In review").length,
+        outdated: all.filter(m => m.status === "Outdated").length,
+      }}
+      coverage={coverage}
+      projects={projects}
+      developers={developers}
+      modules={lists.funcModules}
+      level={sp.lv ?? ""}
+      currentStatus={sp.st ?? ""}
+      filtered={!!(sp.q || sp.mod || sp.st || sp.lv)}
+      editing={editing ? dto(editing) : null}
+      viewing={viewing ? dto(viewing) : null}
+      openNew={sp.new === "1"}
+      preset={sp.for ?? ""}
+      canEdit={canEdit(viewer)}
+      canManage={canManage(viewer)}
     />
   );
 }

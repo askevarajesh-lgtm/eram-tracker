@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { requireViewer } from "@/lib/session";
+import { canEdit, canManage } from "@/lib/permissions";
 import { today } from "@/lib/dates";
 import { OverviewView, type OverviewTask, type OverviewProject, type OverviewDeveloper } from "./_components/OverviewView";
 
 export const metadata: Metadata = { title: "Development overview" };
 
 export default async function OverviewPage() {
-  await requireViewer();
+  const viewer = await requireViewer();
   const D = today();
   const [projectsRaw, tasksRaw, developersRaw] = await Promise.all([
     db.project.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     db.task.findMany({
+      orderBy: [{ project: { sortOrder: "asc" } }, { sno: "asc" }],
       select: {
         id: true,
+        sno: true,
         title: true,
         projectId: true,
         subModule: true,
@@ -24,7 +27,7 @@ export default async function OverviewPage() {
         priority: true,
         testStatus: true,
         acceptStatus: true,
-        project: { select: { name: true } },
+        project: { select: { name: true, code: true } },
         assignees: {
           orderBy: { position: "asc" },
           select: { developerId: true, developer: { select: { name: true } } },
@@ -37,13 +40,16 @@ export default async function OverviewPage() {
   const projects: OverviewProject[] = projectsRaw.map(p => ({
     id: p.id,
     name: p.name,
+    code: p.code,
     fullName: p.fullName,
     phase: p.phase,
     target: p.target,
+    lead: p.lead,
   }));
 
   const tasks: OverviewTask[] = tasksRaw.map(t => ({
     id: t.id,
+    sno: t.sno,
     title: t.title,
     projectId: t.projectId,
     subModule: t.subModule,
@@ -55,6 +61,7 @@ export default async function OverviewPage() {
     testStatus: t.testStatus,
     acceptStatus: t.acceptStatus,
     projectName: t.project?.name,
+    projectCode: t.project?.code,
     assignees: t.assignees.map(a => ({
       developerId: a.developerId,
       developerName: a.developer?.name || "",
@@ -67,5 +74,14 @@ export default async function OverviewPage() {
     title: d.title,
   }));
 
-  return <OverviewView todayStr={D} projects={projects} tasks={tasks} developers={developers} />;
+  return (
+    <OverviewView
+      todayStr={D}
+      projects={projects}
+      tasks={tasks}
+      developers={developers}
+      canEdit={canEdit(viewer)}
+      canManage={canManage(viewer)}
+    />
+  );
 }
